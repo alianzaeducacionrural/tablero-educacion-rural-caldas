@@ -23,6 +23,9 @@ function comun() {
   }
 }
 
+/** Tamaño de letra para que `texto` quepa en un hueco de `hueco` px, sin pasar de `base`. */
+const tam = (texto: string, hueco: number, base: number) => Math.max(11, Math.min(base, Math.floor(hueco / (texto.length * 0.58))))
+
 /** Mezcla un color con blanco: t=0 el color, t=1 blanco. */
 export function aclarar(hex: string, t: number): string {
   const c = hex.replace('#', '')
@@ -167,7 +170,7 @@ export function sunburst(o: { arbol: Nodo[]; fmt: (n: number) => string; centro:
         top: 'middle',
         silent: true,
         style: { text: `{a|${o.centro}}${o.sub ? `
-{b|${o.sub}}` : ''}`, textAlign: 'center', rich: { a: { fontSize: o.compacto ? 17 : 24, fontWeight: 800, fill: TINTA.texto, fontFamily: "'Bricolage Grotesque Variable', " + FUENTE, lineHeight: o.compacto ? 20 : 28 }, b: { fontSize: o.compacto ? 10 : 12, fill: TINTA.texto2, lineHeight: 16 } } },
+{b|${o.sub}}` : ''}`, textAlign: 'center', rich: { a: { fontSize: tam(o.centro, o.compacto ? 92 : 150, o.compacto ? 17 : 24), fontWeight: 800, fill: TINTA.texto, fontFamily: "'Bricolage Grotesque Variable', " + FUENTE, lineHeight: o.compacto ? 20 : 28 }, b: { fontSize: o.compacto ? 10 : 12, fill: TINTA.texto2, lineHeight: 16 } } },
       },
     ],
     series: [
@@ -201,7 +204,7 @@ export function dona(o: { partes: { nombre: string; valor: number; color: string
         left: 'center',
         top: 'middle',
         silent: true,
-        style: { text: `{a|${o.centro}}${o.sub ? `\n{b|${o.sub}}` : ''}`, textAlign: 'center', rich: { a: { fontSize: 20, fontWeight: 800, fill: TINTA.texto, fontFamily: "'Bricolage Grotesque Variable', " + FUENTE, lineHeight: 24 }, b: { fontSize: 12, fill: TINTA.texto2, lineHeight: 16 } } },
+        style: { text: `{a|${o.centro}}${o.sub ? `\n{b|${o.sub}}` : ''}`, textAlign: 'center', rich: { a: { fontSize: tam(o.centro, 118, 20), fontWeight: 800, fill: TINTA.texto, fontFamily: "'Bricolage Grotesque Variable', " + FUENTE, lineHeight: 22 }, b: { fontSize: 12, fill: TINTA.texto2, lineHeight: 16 } } },
       },
     ],
     series: [

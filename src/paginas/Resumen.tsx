@@ -5,7 +5,7 @@ import { Contenido, Cifra, MapaCaldas, Marca, PlacaCabecera, Posiciones, Seccion
 import { agrupar, sumar, unicos } from '../lib/agregar'
 import { PLACAS, colorAportante, colorPrograma } from '../lib/colores'
 import { alternar } from '../lib/filtros'
-import { cop, copM, num, pct } from '../lib/formato'
+import { cop, num, pct } from '../lib/formato'
 import { aclarar, dona, sunburst, type Nodo } from '../lib/graficos'
 import { PROGRAMAS, type Programa } from '../lib/tipos'
 import { useAngosto } from '../lib/angosto'
@@ -70,7 +70,7 @@ export function Resumen() {
     return [...m.values()].sort((a, b) => b.valor - a.valor)
   }, [base])
 
-  const opcionSol = useMemo(() => sunburst({ arbol, fmt: copM, centro: copM(total), sub: 'invertidos', compacto: angosto }), [arbol, total, angosto])
+  const opcionSol = useMemo(() => sunburst({ arbol, fmt: cop, centro: cop(total), sub: 'invertidos', compacto: angosto }), [arbol, total, angosto])
 
   const porAnio = useMemo(
     () =>
@@ -111,7 +111,7 @@ export function Resumen() {
                     Departamento de Caldas
                   </span>
                   <span className="cota">
-                    {total ? pct(depto / total) : '—'} · {copM(depto)}
+                    {total ? pct(depto / total) : '—'} · {cop(depto)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2.5">
@@ -120,7 +120,7 @@ export function Resumen() {
                     Comité de Cafeteros
                   </span>
                   <span className="cota">
-                    {total ? pct(comite / total) : '—'} · {copM(comite)}
+                    {total ? pct(comite / total) : '—'} · {cop(comite)}
                   </span>
                 </div>
               </div>
@@ -132,7 +132,7 @@ export function Resumen() {
             </div>
           </div>
 
-          <MapaCaldas datos={datosMapa} placa={placa} fmt={copM} seleccion={seleccion} alClic={alMunicipio} etiqueta="Mapa de Caldas coloreado por inversión de cada municipio" />
+          <MapaCaldas datos={datosMapa} placa={placa} fmt={cop} seleccion={seleccion} alClic={alMunicipio} etiqueta="Mapa de Caldas coloreado por inversión de cada municipio" />
         </div>
 
         <Seccion
@@ -157,7 +157,7 @@ export function Resumen() {
                 Los que más recibieron
               </h3>
               <p className="mb-3 text-sm text-ink2">Toca un municipio para filtrar.</p>
-              <Posiciones items={top8} fmt={copM} onClic={alMunicipio} seleccion={seleccion} />
+              <Posiciones items={top8} fmt={cop} onClic={alMunicipio} seleccion={seleccion} />
             </div>
           </div>
         </Seccion>
@@ -196,7 +196,7 @@ export function Resumen() {
                     <span className="display text-4xl" style={{ color: 'var(--ink)' }}>
                       {a.anio}
                     </span>
-                    <span className="cota text-sm font-semibold text-ink2">{copM(a.total)}</span>
+                    <span className="cota text-sm font-semibold text-ink2">{cop(a.total)}</span>
                   </div>
                   <Grafico
                     etiqueta={`Inversión ${a.anio} por programa`}
@@ -208,7 +208,7 @@ export function Resumen() {
                       ],
                       centro: totalAnios ? pct(a.total / totalAnios, 0) : '—',
                       sub: 'del total',
-                      fmt: copM,
+                      fmt: cop,
                     })}
                   />
                 </button>

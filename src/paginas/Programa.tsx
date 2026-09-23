@@ -6,7 +6,7 @@ import { Cifra, Contenido, MapaCaldas, Marca, PlacaCabecera, Posiciones, Seccion
 import { agrupar, sumar, top, unicos, type Par } from '../lib/agregar'
 import { PLACAS, colorAportante, colorEstadoActividad } from '../lib/colores'
 import { alternar } from '../lib/filtros'
-import { cant, cop, copM, num, pct } from '../lib/formato'
+import { cant, cop, num, pct } from '../lib/formato'
 import { aclarar, burbujas, dona, treemap, type Nodo } from '../lib/graficos'
 import { PROGRAMAS, type FilaBase, type Programa as Prog } from '../lib/tipos'
 import { pasa, useTablero } from '../lib/usarFiltrado'
@@ -48,7 +48,7 @@ export function Programa({ programa }: { programa: Prog }) {
   }, [filas, f, sel, repetidos])
 
   const v = (x: FilaBase) => (medida === 'valor' ? x.valor : x.cantidad)
-  const fmt = medida === 'valor' ? copM : cant
+  const fmt = medida === 'valor' ? cop : cant
   const titulo = medida === 'valor' ? 'Valor' : 'Cantidad'
 
   const opciones = useMemo(() => {
@@ -133,7 +133,7 @@ export function Programa({ programa }: { programa: Prog }) {
               ) : (
                 <>
                   {' '}
-                  Lo adicional al convenio y la reinversión suman <Marca>{copM(extra)}</Marca>.
+                  Lo adicional al convenio y la reinversión suman <Marca>{cop(extra)}</Marca>.
                 </>
               )}
             </p>

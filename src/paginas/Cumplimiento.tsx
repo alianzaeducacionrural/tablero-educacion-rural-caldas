@@ -6,7 +6,7 @@ import { Aviso, Cifra, Contenido, Marca, PlacaCabecera, Seccion } from '../compo
 import { Tabla } from '../components/Tabla'
 import { sumar } from '../lib/agregar'
 import { PLACAS, colorAportante } from '../lib/colores'
-import { cant, cop, copM, num, pct } from '../lib/formato'
+import { cant, cop, num, pct } from '../lib/formato'
 import { aclarar, sunburst, type Nodo } from '../lib/graficos'
 import { PROGRAMAS, type Meta, type Programa } from '../lib/tipos'
 import { useAngosto } from '../lib/angosto'
@@ -77,7 +77,7 @@ export function Cumplimiento() {
       })).filter((n) => n.children.length),
     [grupos],
   )
-  const opcionSol = useMemo(() => sunburst({ arbol, fmt: copM, centro: copM(valorMeta), sub: 'valor de las metas', compacto: angosto, sinEtiquetas: true }), [arbol, valorMeta, angosto])
+  const opcionSol = useMemo(() => sunburst({ arbol, fmt: cop, centro: cop(valorMeta), sub: 'valor de las metas', compacto: angosto, sinEtiquetas: true }), [arbol, valorMeta, angosto])
 
   // Cofinanciación (Universidad en el Campo)
   const arbolCofin = useMemo<Nodo[]>(() => {
@@ -89,7 +89,7 @@ export function Cumplimiento() {
     return [parte('Departamento de Caldas', 'departamento'), parte('Comité de Cafeteros', 'comite')].filter((n) => (n.children?.length ?? 0) > 0)
   }, [grupos])
   const totalCofin = arbolCofin.reduce((s, n) => s + (n.children ?? []).reduce((t, c) => t + (c.value ?? 0), 0), 0)
-  const opcionCofin = useMemo(() => sunburst({ arbol: arbolCofin, fmt: copM, centro: copM(totalCofin), sub: 'cofinanciación', compacto: angosto }), [arbolCofin, totalCofin, angosto])
+  const opcionCofin = useMemo(() => sunburst({ arbol: arbolCofin, fmt: cop, centro: cop(totalCofin), sub: 'cofinanciación', compacto: angosto }), [arbolCofin, totalCofin, angosto])
 
   const convocados = useMemo(() => {
     const m = new Map<string, { actividad: string; convocados: number; valor: number; municipios: Set<string> }>()
@@ -132,7 +132,7 @@ export function Cumplimiento() {
               <div className="space-y-7">
                 <Cifra tam="xl" valor={valorMeta ? pct(valorEj / valorMeta) : '—'} etiqueta={`del valor de las metas ya se ejecutó · vigencia ${vigencia}`} color="var(--ink)" />
                 <p className="text-xl leading-relaxed text-ink2">
-                  Se ejecutaron <Marca>{copM(valorEj)}</Marca> de <Marca>{copM(valorMeta)}</Marca>. De <Marca>{num(conMeta.length)} actividades con meta</Marca>, <Marca color="#BFEBCF">{num(cumplidas)} están cumplidas</Marca> y <Marca color="#BFEBCF">{num(superadas)} superaron su meta</Marca>.
+                  Se ejecutaron <Marca>{cop(valorEj)}</Marca> de <Marca>{cop(valorMeta)}</Marca>. De <Marca>{num(conMeta.length)} actividades con meta</Marca>, <Marca color="#BFEBCF">{num(cumplidas)} están cumplidas</Marca> y <Marca color="#BFEBCF">{num(superadas)} superaron su meta</Marca>.
                 </p>
                 <div>
                   <p className="mb-2 text-sm font-semibold text-ink2">Anillo interior: {cfg.grupo.toLowerCase()}. Anillo exterior: cada actividad, del color de su avance.</p>

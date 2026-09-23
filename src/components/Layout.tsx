@@ -33,10 +33,7 @@ export function Layout() {
     <div className="lamina min-h-screen">
       <header className="bg-white">
         <div className="border-b border-line">
-          <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-6 px-5 py-3">
-            <img src={logoSed} alt="Gobierno de Caldas, Secretaría de Educación" width={1100} height={129} className="h-9 w-auto sm:h-12" />
-            <img src={logoComiteNegro} alt="Comité de Cafeteros de Caldas, Federación Nacional de Cafeteros de Colombia" width={700} height={196} className="h-10 w-auto sm:h-14" />
-          </div>
+          <p className="mx-auto max-w-[1500px] px-5 py-1.5 text-xs font-semibold text-ink2">Dashboard creado por el Comité de Cafeteros de Caldas - Área de Educación</p>
         </div>
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-x-8 gap-y-3 px-5 py-3.5">
           <NavLink to="/" className="flex items-center gap-3" aria-label="Educación rural en Caldas, ir al resumen">
@@ -53,7 +50,7 @@ export function Layout() {
             {actualizando ? 'Actualizando' : 'Actualizar'}
           </button>
         </div>
-        <nav aria-label="Láminas" className="mx-auto flex max-w-[1500px] gap-2 overflow-x-auto px-5 pb-3.5">
+        <nav aria-label="Láminas" className="mx-auto flex max-w-[1500px] gap-2 overflow-x-auto px-5 pb-4 pt-1.5">
           {ORDEN_PLACAS.map((id) => {
             const p = PLACAS[id]
             return (

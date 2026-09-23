@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Inversión de la Gobernación de Caldas en educación rural: Modelos Flexibles y Universidad en el Campo." />
+    <title>Educación rural en Caldas</title>
+    <script>
+      // Aplica el tema guardado antes de pintar, para evitar el destello claro/oscuro.
+      try {
+        var t = localStorage.getItem('tema')
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t)
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

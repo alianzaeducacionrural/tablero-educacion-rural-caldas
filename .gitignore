@@ -1,0 +1,26 @@
+# Datos fuente: contienen nombres de estudiantes y no deben publicarse
+docs/
+datos/
+*.xlsx
+*.xls
+*.pbix
+*.csv
+
+# Secretos
+.env
+.env.*
+*.local
+.clasprc.json
+
+# Node / build
+node_modules/
+dist/
+.vite/
+*.log
+
+# Datos de desarrollo
+public/datos.local.json
+
+# Python
+__pycache__/
+*.pyc

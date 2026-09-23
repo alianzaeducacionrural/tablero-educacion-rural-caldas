@@ -41,7 +41,9 @@ clasp push --force
 clasp create-deployment --description "vN"     # nueva versión
 clasp update-deployment <deploymentId> ...      # para conservar la misma URL
 ```
-El Web App corre como su dueño, así el Sheet puede seguir privado. La clave de administración **no está en el código**: solo su hash SHA-256 (`TOKEN_SHA256` en `Codigo.js`); la clave real vive en `.env` (ignorado por git).
+El Web App corre como su dueño, así el Sheet puede seguir privado. Hay dos claves y en el código solo están sus hashes SHA-256 (`Codigo.js`):
+- **Clave del panel** (`CLAVE_ADMIN_SHA256`): entra a `/#/admin` para registrar actividades, editar metas y corregir duplicados. Al ser corta, quien vea el repositorio podría descubrirla por fuerza bruta.
+- **Clave fuerte** (`TOKEN_SHA256`, 256 bits, en `.env` que git ignora): solo los scripts la usan, y es la única que puede reemplazar hojas enteras (`subir_a_sheet.py`).
 El `POST` se envía como `text/plain` a propósito: con `application/json` el navegador hace un preflight que Apps Script no responde.
 
 ## Publicación

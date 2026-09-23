@@ -9,7 +9,10 @@
  * El token de administración no está aquí: solo su hash SHA-256.
  * El script está atado al Google Sheet, que puede seguir siendo privado: el Web App corre como su dueño.
  */
+// Clave fuerte (256 bits, solo para scripts): la única que puede reemplazar hojas enteras.
 var TOKEN_SHA256 = '884eb7978bf80fdfaed03e0bef24de58855e406f5fd1b1232390dd0681b66e94';
+// Clave del panel de administración: registrar actividades, editar metas y corregir duplicados.
+var CLAVE_ADMIN_SHA256 = 'a03f4a6715fd6e6a2397e30dce22b95346bb38b116cd71071e91ea712d9ffcac';
 
 var HOJAS_DATOS = ['mf_base', 'uc_base', 'beneficiados', 'estudiantes', 'metas_mf', 'metas_uc', 'mapa_proyectos', 'alias'];
 var HOJA_AUDITORIA = 'auditoria';
@@ -52,13 +55,14 @@ function doPost(e) {
   var bloqueado = false;
   try {
     var req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
-    if (!tokenValido_(req.token)) {
+    var nivel = nivelAcceso_(req.token);
+    if (!nivel) {
       Utilities.sleep(1500); // frena la fuerza bruta
       return json_({ ok: false, error: 'No autorizado' });
     }
     lock.waitLock(20000);
     bloqueado = true;
-    var r = despachar_(req);
+    var r = despachar_(req, nivel);
     r.accion = req.action; // el cliente comprueba que la respuesta corresponde a SU petición
     limpiarCache_();
     return json_(r);
@@ -69,13 +73,15 @@ function doPost(e) {
   }
 }
 
-function despachar_(req) {
+function despachar_(req, nivel) {
   switch (req.action) {
     case 'verificar': return { ok: true };
     case 'registrar': return registrar_(req);
     case 'metas_guardar': return metasGuardar_(req);
     case 'alias_guardar': return aliasGuardar_(req);
-    case 'sembrar': return sembrar_(req);
+    case 'sembrar':
+      if (nivel !== 'fuerte') throw new Error('Cargar hojas completas requiere la clave de siembra (solo para scripts).');
+      return sembrar_(req);
     default: throw new Error('Acción no válida: ' + req.action);
   }
 }
@@ -440,8 +446,13 @@ function sha256_(s) {
     .join('');
 }
 
-function tokenValido_(token) {
-  return typeof token === 'string' && token.length >= 32 && sha256_(token) === TOKEN_SHA256;
+/** 'fuerte' (scripts), 'admin' (panel) o '' si la clave no es válida. */
+function nivelAcceso_(token) {
+  if (typeof token !== 'string' || token.length < 8) return '';
+  var hash = sha256_(token);
+  if (hash === TOKEN_SHA256) return 'fuerte';
+  if (hash === CLAVE_ADMIN_SHA256) return 'admin';
+  return '';
 }
 
 function mensaje_(err) {

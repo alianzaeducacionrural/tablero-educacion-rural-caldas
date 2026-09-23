@@ -9,7 +9,8 @@ import { detectarDuplicados, type GrupoDuplicado } from '../lib/normalizar'
 import { PROGRAMAS, type Meta, type Programa } from '../lib/tipos'
 
 const CLAVE_TOKEN = 'tablero-token'
-const CLAVE_QUIEN = 'tablero-quien'
+// Sin campo de nombre: los cambios quedan en «auditoria» a nombre del panel.
+const QUIEN = 'Panel de administración'
 const leer = (k: string) => {
   try {
     return sessionStorage.getItem(k) ?? ''
@@ -30,7 +31,7 @@ type Pestana = 'registrar' | 'metas' | 'duplicados'
 
 export function Admin() {
   const [token, setToken] = useState(() => leer(CLAVE_TOKEN))
-  const [quien, setQuien] = useState(() => leer(CLAVE_QUIEN))
+  const quien = QUIEN
   const [pestana, setPestana] = useState<Pestana>('registrar')
 
   if (!hayApi) {
@@ -43,14 +44,14 @@ export function Admin() {
       </Aviso>
     )
   }
-  if (!token) return <Ingreso alEntrar={(t, q) => { guardar(CLAVE_TOKEN, t); guardar(CLAVE_QUIEN, q); setToken(t); setQuien(q) }} />
+  if (!token) return <Ingreso alEntrar={(t) => { guardar(CLAVE_TOKEN, t); setToken(t) }} />
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Administración</h2>
-          <p className="mt-1 text-sm text-ink2">Los cambios se guardan en el Google Sheet y quedan registrados en la hoja «auditoria». Sesión de {quien}.</p>
+          <p className="mt-1 text-sm text-ink2">Los cambios se guardan en el Google Sheet y quedan registrados en la hoja «auditoria».</p>
         </div>
         <div className="flex items-center gap-2">
           <Segmentado
@@ -75,9 +76,8 @@ export function Admin() {
   )
 }
 
-function Ingreso({ alEntrar }: { alEntrar: (token: string, quien: string) => void }) {
+function Ingreso({ alEntrar }: { alEntrar: (token: string) => void }) {
   const [token, setToken] = useState('')
-  const [quien, setQuien] = useState(leer(CLAVE_QUIEN))
   const [error, setError] = useState('')
   const [validando, setValidando] = useState(false)
 
@@ -87,7 +87,7 @@ function Ingreso({ alEntrar }: { alEntrar: (token: string, quien: string) => voi
     setError('')
     try {
       await admin('verificar', {}, token.trim())
-      alEntrar(token.trim(), quien.trim())
+      alEntrar(token.trim())
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -99,11 +99,8 @@ function Ingreso({ alEntrar }: { alEntrar: (token: string, quien: string) => voi
     <form onSubmit={enviar} className="mx-auto max-w-md space-y-4 rounded-xl border border-line bg-surface p-6">
       <h2 className="text-xl font-semibold tracking-tight">Administración</h2>
       <p className="text-sm text-ink2">Para registrar actividades, editar metas o corregir duplicados hace falta la clave de administración.</p>
-      <Campo etiqueta="Tu nombre (queda en el registro de cambios)">
-        <input required value={quien} onChange={(e) => setQuien(e.target.value)} autoComplete="name" className={entrada} />
-      </Campo>
       <Campo etiqueta="Clave de administración">
-        <input required type="password" value={token} onChange={(e) => setToken(e.target.value)} autoComplete="current-password" className={entrada} />
+        <input required autoFocus type="password" value={token} onChange={(e) => setToken(e.target.value)} autoComplete="current-password" className={entrada} />
       </Campo>
       {error && <p role="alert" className="text-sm text-bad">{error}</p>}
       <button disabled={validando} className="w-full rounded-lg bg-accent px-3 py-2 font-medium text-white disabled:opacity-60">

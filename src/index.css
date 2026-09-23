@@ -1,93 +1,107 @@
 @import 'tailwindcss';
 
-/* Tokens de diseño. Claro por defecto; oscuro por preferencia del sistema o por el interruptor (data-theme). */
+/*
+ * Atlas hipsométrico de Caldas. Solo tema claro.
+ * Cada lámina (pestaña) redefine estas variables con su propia familia de color (ver lib/colores.ts).
+ */
 :root {
   color-scheme: light;
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --muted: #898781;
-  --grid: #e1e0d9;
-  --axis: #c3c2b7;
-  --border: rgba(11, 11, 11, 0.1);
-  --accent: #2a78d6;
-  --accent-ink: #184f95;
-  --good: #006300;
-  --bad: #d03b3b;
-  --wash: rgba(11, 11, 11, 0.05);
-}
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme='light'])) {
-    color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --ink: #ffffff;
-    --ink-2: #c3c2b7;
-    --muted: #898781;
-    --grid: #2c2c2a;
-    --axis: #383835;
-    --border: rgba(255, 255, 255, 0.1);
-    --accent: #3987e5;
-    --accent-ink: #9ec5f4;
-    --good: #0ca30c;
-    --bad: #ec6a6a;
-    --wash: rgba(255, 255, 255, 0.06);
-  }
-}
-:root[data-theme='dark'] {
-  color-scheme: dark;
-  --page: #0d0d0d;
-  --surface: #1a1a19;
-  --ink: #ffffff;
-  --ink-2: #c3c2b7;
-  --muted: #898781;
-  --grid: #2c2c2a;
-  --axis: #383835;
-  --border: rgba(255, 255, 255, 0.1);
-  --accent: #3987e5;
-  --accent-ink: #9ec5f4;
-  --good: #0ca30c;
-  --bad: #ec6a6a;
-  --wash: rgba(255, 255, 255, 0.06);
+  --main: #6d2ee8;
+  --ink: #26105e;
+  --soft: #f4eeff;
+  --wash: #e3d5ff;
+  --on: #ffffff;
+
+  --texto: #1d1a4a;
+  --texto-2: #4b476f;
+  --suave: #7c78a0;
+  --linea: rgba(29, 26, 74, 0.14);
+  --hoja: #ffffff;
 }
 
 @theme {
-  --color-page: var(--page);
-  --color-surface: var(--surface);
-  --color-ink: var(--ink);
-  --color-ink2: var(--ink-2);
-  --color-muted: var(--muted);
-  --color-grid: var(--grid);
-  --color-axis: var(--axis);
-  --color-line: var(--border);
-  --color-accent: var(--accent);
-  --color-accentink: var(--accent-ink);
-  --color-good: var(--good);
-  --color-bad: var(--bad);
+  --color-page: var(--soft);
+  --color-surface: var(--hoja);
+  --color-ink: var(--texto);
+  --color-ink2: var(--texto-2);
+  --color-muted: var(--suave);
+  --color-grid: var(--linea);
+  --color-axis: var(--suave);
+  --color-line: var(--linea);
+  --color-accent: var(--main);
+  --color-accentink: var(--ink);
+  --color-good: #0b7a45;
+  --color-bad: #c81e3a;
   --color-wash: var(--wash);
-  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --color-main: var(--main);
+  --color-on: var(--on);
+  --color-soft: var(--soft);
+  --font-sans: 'Albert Sans Variable', system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque Variable', 'Albert Sans Variable', system-ui, sans-serif;
+  --font-mono: 'Spline Sans Mono Variable', ui-monospace, monospace;
 }
 
 html {
-  background: var(--page);
+  background: var(--soft);
 }
 body {
   margin: 0;
-  background: var(--page);
-  color: var(--ink);
+  background: var(--soft);
+  color: var(--texto);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.display {
+  font-family: var(--font-display);
+  font-variation-settings: 'wdth' 88;
+  letter-spacing: -0.025em;
+  line-height: 0.98;
+  font-weight: 800;
+}
+.cota {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 3px solid var(--ink);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
-.tabular {
-  font-variant-numeric: tabular-nums;
+/* Al cambiar de lámina el fondo y el color de campo se funden: es el único gesto de entrada. */
+.lamina {
+  background: var(--soft);
+  transition: background-color 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.entra {
+  animation: entrar 0.6s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+@keyframes punto {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

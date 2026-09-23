@@ -1,44 +1,9 @@
-import { useMemo } from 'react'
+import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { alfa } from '../lib/agregar'
 import { useDatos } from '../lib/datos'
-import { useFiltros } from '../lib/filtros'
-import { useTema } from '../lib/tema'
-import { Anios, Fila, MultiSelect } from './controles'
-import { Aviso, Cargando } from './Tarjetas'
-
-const NAV = [
-  { a: '/', t: 'Resumen', fin: true },
-  { a: '/modelos-flexibles', t: 'Modelos Flexibles' },
-  { a: '/universidad-en-el-campo', t: 'Universidad en el Campo' },
-  { a: '/estudiantes', t: 'Estudiantes' },
-  { a: '/cobertura', t: 'Cobertura' },
-  { a: '/cumplimiento', t: 'Cumplimiento' },
-]
-
-function FiltrosGlobales() {
-  const { datos } = useDatos()
-  const f = useFiltros()
-  const { anios, municipios } = useMemo(() => {
-    const a = new Set<number>()
-    const m = new Set<string>()
-    datos?.base.forEach((x) => (a.add(x.anio), m.add(x.municipio)))
-    datos?.beneficiados.forEach((x) => (a.add(x.anio), m.add(x.municipio)))
-    return { anios: [...a].filter(Boolean).sort(), municipios: [...m].sort(alfa) }
-  }, [datos])
-
-  return (
-    <Fila className="py-2.5">
-      <Anios anios={anios} valor={f.anios} onChange={f.setAnios} />
-      <MultiSelect etiqueta="Municipio" opciones={municipios} valor={f.municipios} onChange={f.setMunicipios} />
-      {f.activos > 0 && (
-        <button type="button" onClick={f.limpiar} className="rounded-lg px-2.5 py-1.5 text-sm text-accentink hover:bg-wash">
-          Limpiar filtros
-        </button>
-      )}
-    </Fila>
-  )
-}
+import { ORDEN_PLACAS, PLACAS, placaDeRuta } from '../lib/colores'
+import { Icono } from './Icono'
+import { Aviso, Cargando, SiluetaCaldas } from './Lamina'
 
 const fechaCorta = (iso: string) => {
   const d = new Date(iso)
@@ -47,80 +12,98 @@ const fechaCorta = (iso: string) => {
 
 export function Layout() {
   const { estado, datos, error, actualizando, refrescar } = useDatos()
-  const { tema, alternar } = useTema()
   const { pathname } = useLocation()
-  const sinFiltros = pathname.startsWith('/admin') || pathname.startsWith('/cumplimiento')
+  const placa = placaDeRuta(pathname)
+
+  // Cada pestaña es una lámina con su propia familia de color: se aplica a toda la página, incluido el fondo.
+  useEffect(() => {
+    const r = document.documentElement.style
+    r.setProperty('--main', placa.main)
+    r.setProperty('--ink', placa.ink)
+    r.setProperty('--soft', placa.soft)
+    r.setProperty('--wash', placa.wash)
+    r.setProperty('--on', placa.on)
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', placa.main)
+    window.scrollTo({ top: 0 })
+  }, [placa])
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto max-w-7xl px-4 pt-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium text-accentink">Gobernación de Caldas · Secretaría de Educación</p>
-              <h1 className="mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">Educación rural en Caldas</h1>
-              <p className="mt-1 max-w-2xl text-sm text-ink2">Inversión y cobertura de Modelos Flexibles y Universidad en el Campo, en alianza con el Comité de Cafeteros.</p>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              {datos && <span className="hidden text-muted sm:inline">Datos al {fechaCorta(datos.generado)}</span>}
-              <button type="button" onClick={() => void refrescar()} disabled={actualizando} className="rounded-lg border border-line px-3 py-1.5 text-ink2 hover:text-ink disabled:opacity-60">
-                {actualizando ? 'Actualizando…' : 'Actualizar'}
-              </button>
-              <button type="button" onClick={alternar} aria-label={`Cambiar a tema ${tema === 'dark' ? 'claro' : 'oscuro'}`} className="grid size-9 place-items-center rounded-lg border border-line text-ink2 hover:text-ink">
-                {tema === 'dark' ? (
-                  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.6 5.6 0 0 1 6.4 2.5a5.6 5.6 0 1 0 7.1 7.1z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
-                )}
-              </button>
-            </div>
+    <div className="lamina min-h-screen">
+      <header className="bg-white">
+        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-3.5">
+          <NavLink to="/" className="flex items-center gap-3" aria-label="Educación rural en Caldas, ir al resumen">
+            <SiluetaCaldas className="h-9 w-auto" trazo={placa.main} style={{ strokeWidth: 5 }} />
+            <span>
+              <span className="display block text-2xl" style={{ color: 'var(--ink)' }}>
+                Educación rural en Caldas
+              </span>
+              <span className="block text-xs font-semibold text-ink2">Gobernación de Caldas · Secretaría de Educación · Comité de Cafeteros</span>
+            </span>
+          </NavLink>
+          <div className="flex items-center gap-3 text-sm">
+            {datos && <span className="cota hidden text-xs text-ink2 md:inline">Datos al {fechaCorta(datos.generado)}</span>}
+            <button type="button" onClick={() => void refrescar()} disabled={actualizando} className="inline-flex items-center gap-2 rounded-full px-4 py-2 font-bold text-accentink ring-1 ring-line hover:bg-wash disabled:opacity-60">
+              <Icono n="refrescar" size={15} className={actualizando ? 'animate-spin' : ''} />
+              {actualizando ? 'Actualizando' : 'Actualizar'}
+            </button>
           </div>
-          <nav aria-label="Secciones" className="-mb-px mt-4 flex gap-1 overflow-x-auto">
-            {NAV.map((n) => (
-              <NavLink
-                key={n.a}
-                to={n.a}
-                end={n.fin}
-                className={({ isActive }) => `whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium ${isActive ? 'border-accent text-ink' : 'border-transparent text-ink2 hover:text-ink'}`}
-              >
-                {n.t}
-              </NavLink>
-            ))}
-          </nav>
         </div>
+        <nav aria-label="Láminas" className="mx-auto flex max-w-[1400px] gap-2 overflow-x-auto px-5 pb-3.5">
+          {ORDEN_PLACAS.map((id) => {
+            const p = PLACAS[id]
+            return (
+              <NavLink
+                key={id}
+                to={p.ruta}
+                end={p.ruta === '/'}
+                className="flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-bold ring-1 ring-line transition-colors"
+                style={({ isActive }) => (isActive ? { background: p.main, color: p.on } : { background: '#fff', color: p.ink })}
+              >
+                {({ isActive }) => (
+                  <>
+                    <span className="size-3 rounded-full" style={{ background: isActive ? p.on : p.main }} aria-hidden="true" />
+                    {p.nombre}
+                  </>
+                )}
+              </NavLink>
+            )
+          })}
+        </nav>
       </header>
 
-      {!sinFiltros && estado === 'listo' && (
-        <div className="border-b border-line bg-page">
-          <div className="mx-auto max-w-7xl px-4">
-            <FiltrosGlobales />
+      <main>
+        {estado === 'cargando' && (
+          <div className="mx-auto max-w-[1400px] px-5 py-10">
+            <Cargando />
           </div>
-        </div>
-      )}
-
-      <main className="mx-auto max-w-7xl px-4 py-5">
-        {estado === 'cargando' && <Cargando />}
+        )}
         {estado === 'error' && (
-          <Aviso tipo="error">
-            <p className="font-medium">No se pudieron cargar los datos.</p>
-            <p className="mt-1 text-ink2">{error}</p>
-            <button type="button" onClick={() => void refrescar()} className="mt-3 rounded-lg border border-line px-3 py-1.5 hover:bg-wash">
-              Reintentar
-            </button>
-          </Aviso>
+          <div className="mx-auto max-w-[1400px] px-5 py-10">
+            <Aviso tipo="error">
+              <p className="font-bold">No se pudieron cargar los datos.</p>
+              <p className="mt-1 text-ink2">{error}</p>
+              <button type="button" onClick={() => void refrescar()} className="mt-3 rounded-full px-4 py-2 font-bold ring-1 ring-line hover:bg-wash">
+                Reintentar
+              </button>
+            </Aviso>
+          </div>
         )}
         {estado === 'listo' && (
           <>
-            {error && <div className="mb-4"><Aviso>No se pudo actualizar; se muestran los últimos datos guardados. ({error})</Aviso></div>}
+            {error && (
+              <div className="mx-auto max-w-[1400px] px-5 pt-4">
+                <Aviso>No se pudo actualizar; se muestran los últimos datos guardados. ({error})</Aviso>
+              </div>
+            )}
             <Outlet />
           </>
         )}
       </main>
 
-      <footer className="mx-auto max-w-7xl px-4 pb-8 pt-2 text-sm text-muted">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
-          <span>Valores en pesos colombianos. Cada gráfico tiene su tabla y se puede descargar en CSV.</span>
-          <NavLink to="/admin" className="hover:text-ink">
+      <footer className="mx-auto max-w-[1400px] px-5 pb-10 pt-4 text-sm text-ink2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-5">
+          <span>Valores en pesos colombianos. Contornos municipales: DANE, vía geoBoundaries (CC BY 4.0). Cada visual tiene su tabla y se descarga en CSV.</span>
+          <NavLink to="/admin" className="font-bold text-accentink hover:underline">
             Administración
           </NavLink>
         </div>

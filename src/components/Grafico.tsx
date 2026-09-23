@@ -1,15 +1,19 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts/core'
 import type { EChartsCoreOption, ECharts } from 'echarts/core'
-import { BarChart, SankeyChart } from 'echarts/charts'
-import { GridComponent, LegendComponent, TooltipComponent, AriaComponent } from 'echarts/components'
+import { GraphChart, MapChart, PieChart, SunburstChart, TreemapChart } from 'echarts/charts'
+import { AriaComponent, GraphicComponent, TooltipComponent } from 'echarts/components'
+import { LabelLayout } from 'echarts/features'
 import { CanvasRenderer } from 'echarts/renderers'
+import caldas from '../data/caldas.json'
 
-echarts.use([BarChart, SankeyChart, GridComponent, LegendComponent, TooltipComponent, AriaComponent, CanvasRenderer])
+echarts.use([GraphChart, MapChart, PieChart, SunburstChart, TreemapChart, AriaComponent, GraphicComponent, TooltipComponent, LabelLayout, CanvasRenderer])
+// Contornos de los 27 municipios de Caldas (DANE, vía geoBoundaries CC BY 4.0): ver scripts/mapa_caldas.py
+echarts.registerMap('caldas', caldas as unknown as Parameters<typeof echarts.registerMap>[1])
 
 interface Props {
   opcion: EChartsCoreOption
-  alto: number
+  alto: number | string
   /** Texto para lectores de pantalla. */
   etiqueta: string
   alClic?: (nombre: string) => void

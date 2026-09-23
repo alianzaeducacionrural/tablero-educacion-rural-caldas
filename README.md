@@ -11,6 +11,7 @@ Google Sheet (privado)  ←→  Apps Script Web App (clasp)  ──►  GitHub P
 
 ## Páginas
 Resumen · Modelos Flexibles · Universidad en el Campo · Estudiantes · Cobertura · Cumplimiento · Administración (`/#/admin`).
+Cada pestaña tiene su propio estilo de color; el sistema visual está en [DESIGN.md](DESIGN.md). Solo tema claro.
 
 ## Desarrollo
 ```bash
@@ -19,7 +20,9 @@ python scripts/datos_local.py   # genera public/datos.local.json a partir de dat
 npm run dev                     # sin VITE_API_URL lee ese JSON local
 npm run build
 ```
-`?tema=light` o `?tema=dark` en el enlace fuerza el tema.
+
+## Mapa
+`python scripts/mapa_caldas.py` regenera `src/data/caldas.json` (27 municipios de Caldas). Contornos: DANE (MGN), vía [geoBoundaries](https://www.geoboundaries.org) (CC BY 4.0).
 
 ## Datos
 Los archivos fuente (`docs/`) traen nombres de estudiantes y **no se suben al repositorio** (`.gitignore`).

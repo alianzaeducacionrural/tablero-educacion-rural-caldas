@@ -1,28 +1,27 @@
 import { useMemo, useState } from 'react'
+import { BarraFiltros } from '../components/BarraFiltros'
 import { Grafico } from '../components/Grafico'
-import { Kpi, Kpis, Tarjeta } from '../components/Tarjetas'
-import type { TablaDatos } from '../components/Tabla'
-import { agrupar, alfa, sumar, top, unicos, type Par } from '../lib/agregar'
-import { colorPrograma } from '../lib/colores'
+import { Icono } from '../components/Icono'
+import { Cifra, Contenido, MapaCaldas, Marca, PlacaCabecera, Seccion, Vertices } from '../components/Lamina'
+import { agrupar, alfa, sumar, unicos } from '../lib/agregar'
+import { PLACAS } from '../lib/colores'
 import { alternar } from '../lib/filtros'
 import { num } from '../lib/formato'
-import { altoBarras, barrasH, columnas } from '../lib/graficos'
-import { useTema } from '../lib/tema'
+import { aclarar, treemap, type Nodo } from '../lib/graficos'
 import { descripcionFiltros, pasa, useTablero } from '../lib/usarFiltrado'
 
-const TOP = 12
+const placa = PLACAS.cobertura
 
-interface Nodo {
+interface Fila {
   clave: string
   nombre: string
   nivel: 0 | 1 | 2
   total: number
-  hijos: Nodo[]
+  hijos: Fila[]
 }
 
 export function Cobertura() {
   const { datos, f } = useTablero()
-  const { tema } = useTema()
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set())
   const [q, setQ] = useState('')
 
@@ -30,7 +29,7 @@ export function Cobertura() {
   const filasTodosAnios = useMemo(() => datos.beneficiados.filter((b) => pasa({ anios: [], municipios: f.municipios }, b.anio, b.municipio)), [datos, f.municipios])
   const filasTodosMuni = useMemo(() => datos.beneficiados.filter((b) => pasa({ anios: f.anios, municipios: [] }, b.anio, b.municipio)), [datos, f.anios])
 
-  const arbol = useMemo(() => {
+  const arbolTabla = useMemo(() => {
     const munis = new Map<string, Map<string, Map<string, number>>>()
     filas.forEach((b) => {
       const im = munis.get(b.municipio) ?? new Map<string, Map<string, number>>()
@@ -39,10 +38,10 @@ export function Cobertura() {
       im.set(b.institucion, sm)
       munis.set(b.municipio, im)
     })
-    const out: Nodo[] = []
+    const out: Fila[] = []
     ;[...munis.entries()].sort((a, b) => alfa(a[0], b[0])).forEach(([m, im]) => {
-      const insts: Nodo[] = [...im.entries()].sort((a, b) => alfa(a[0], b[0])).map(([i, sm]) => {
-        const sedes: Nodo[] = [...sm.entries()].sort((a, b) => alfa(a[0], b[0])).map(([s, n]) => ({ clave: `${m}|${i}|${s}`, nombre: s, nivel: 2, total: n, hijos: [] }))
+      const insts: Fila[] = [...im.entries()].sort((a, b) => alfa(a[0], b[0])).map(([i, sm]) => {
+        const sedes: Fila[] = [...sm.entries()].sort((a, b) => alfa(a[0], b[0])).map(([s, n]) => ({ clave: `${m}|${i}|${s}`, nombre: s, nivel: 2, total: n, hijos: [] }))
         return { clave: `${m}|${i}`, nombre: i, nivel: 1, total: sumar(sedes, (x) => x.total), hijos: sedes }
       })
       out.push({ clave: m, nombre: m, nivel: 0, total: sumar(insts, (x) => x.total), hijos: insts })
@@ -52,128 +51,130 @@ export function Cobertura() {
 
   const visibles = useMemo(() => {
     const t = q.trim().toLowerCase()
-    const coincide = (n: Nodo): boolean => n.nombre.toLowerCase().includes(t) || n.hijos.some(coincide)
-    const filas: Nodo[] = []
+    const coincide = (n: Fila): boolean => n.nombre.toLowerCase().includes(t) || n.hijos.some(coincide)
+    const res: Fila[] = []
     // Con búsqueda se despliega solo lo que coincide; si coincide el padre, se muestran todos sus hijos.
-    const recorrer = (n: Nodo, padreCoincide: boolean) => {
+    const recorrer = (n: Fila, padreCoincide: boolean) => {
       const yo = !!t && n.nombre.toLowerCase().includes(t)
       if (t && !padreCoincide && !coincide(n)) return
-      filas.push(n)
+      res.push(n)
       if (abiertos.has(n.clave) || t) n.hijos.forEach((h) => recorrer(h, padreCoincide || yo))
     }
-    arbol.forEach((n) => recorrer(n, false))
-    return filas
-  }, [arbol, abiertos, q])
+    arbolTabla.forEach((n) => recorrer(n, false))
+    return res
+  }, [arbolTabla, abiertos, q])
 
-  const alt = (clave: string) => setAbiertos((s) => { const n = new Set(s); if (n.has(clave)) n.delete(clave); else n.add(clave); return n })
-  const todoAbierto = () => setAbiertos(new Set(arbol.flatMap((m) => [m.clave, ...m.hijos.map((i) => i.clave)])))
+  const alternarFila = (clave: string) => setAbiertos((s) => { const n = new Set(s); if (n.has(clave)) n.delete(clave); else n.add(clave); return n })
+  const todoAbierto = () => setAbiertos(new Set(arbolTabla.flatMap((m) => [m.clave, ...m.hijos.map((i) => i.clave)])))
 
   const total = sumar(filas, (b) => b.beneficiados)
-  const pMuni: Par[] = agrupar(filasTodosMuni, (b) => b.municipio, (b) => b.beneficiados)
-  const repetidos = useMemo(() => {
-    const m = new Map<string, Set<string>>()
-    filas.forEach((b) => m.set(b.institucion, (m.get(b.institucion) ?? new Set()).add(b.municipio)))
-    return new Set([...m].filter(([, s]) => s.size > 1).map(([n]) => n))
-  }, [filas])
-  const pInst: Par[] = agrupar(filas, (b) => (repetidos.has(b.institucion) ? `${b.institucion} (${b.municipio})` : b.institucion), (b) => b.beneficiados)
+  const datosMapa = useMemo(() => agrupar(filasTodosMuni, (b) => b.municipio, (b) => b.beneficiados).map((p) => ({ name: p.nombre, value: p.valor })), [filasTodosMuni])
   const anios = [...new Set(filasTodosAnios.map((b) => b.anio))].sort()
   const porAnio = anios.map((a) => sumar(filasTodosAnios.filter((b) => b.anio === a), (b) => b.beneficiados))
-  const color = colorPrograma(tema, 'mf')
 
-  const tabla = (col: string, p: Par[], archivo: string): TablaDatos => ({
-    archivo,
-    columnas: [{ clave: 'nombre', titulo: col }, { clave: 'valor', titulo: 'Beneficiados', tipo: 'numero' }],
-    filas: p.map((x) => ({ nombre: x.nombre, valor: x.valor })),
-  })
-  const nota = (todos: number) => (todos > TOP ? `Los ${TOP} mayores de ${num(todos)}. La tabla muestra todos.` : undefined)
+  // Treemap: municipio → institución → sede
+  const arbol = useMemo<Nodo[]>(
+    () =>
+      arbolTabla
+        .slice()
+        .sort((a, b) => b.total - a.total)
+        .map((m, _i, todos) => {
+          const color = placa.escala[Math.min(6, Math.floor(Math.sqrt(m.total / (todos[0].total || 1)) * 7))]
+          return {
+            name: m.nombre,
+            color,
+            children: m.hijos.slice().sort((a, b) => b.total - a.total).map((ins, j) => ({
+              name: ins.nombre,
+              color: aclarar(color, Math.min(0.5, 0.08 + j * 0.05)),
+              children: ins.hijos.map((s, k) => ({ name: s.nombre, value: s.total, color: aclarar(color, Math.min(0.7, 0.28 + k * 0.05)) })),
+            })),
+          }
+        }),
+    [arbolTabla],
+  )
+  const opcionArbol = useMemo(() => treemap({ arbol, fmt: num }), [arbol])
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">Cobertura</h2>
-        <p className="mt-1 max-w-2xl text-sm text-ink2">
-          Estudiantes beneficiados por Modelos Flexibles. Mostrando: {descripcionFiltros(f)}. Es la suma de los años seleccionados: un estudiante atendido en varios años puede contarse más de una vez.
-        </p>
-      </div>
+    <>
+      <PlacaCabecera placa={placa} titulo="Hasta dónde llega" texto="Estudiantes beneficiados por Modelos Flexibles, municipio por municipio, hasta cada sede. Es la suma de los años elegidos: quien se atendió en varios años puede contarse más de una vez." />
 
-      <Kpis>
-        <Kpi heroe titulo="Estudiantes beneficiados" valor={num(total)} detalle="Suma de los años seleccionados" />
-        <Kpi titulo="Municipios" valor={num(unicos(filas, (b) => b.municipio).size)} />
-        <Kpi titulo="Instituciones" valor={num(unicos(filas, (b) => `${b.municipio}|${b.institucion}`).size)} detalle={`${num(unicos(filas, (b) => `${b.municipio}|${b.institucion}|${b.sede}`).size)} sedes`} />
-      </Kpis>
-
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-        <Tarjeta
-          titulo="Beneficiados por año"
-          nota="Toca una columna para filtrar por año."
-          tabla={{ archivo: 'beneficiados-por-anio', columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'n', titulo: 'Beneficiados', tipo: 'numero' }], filas: anios.map((a, i) => ({ anio: String(a), n: porAnio[i] })) }}
-        >
-          <Grafico
-            etiqueta="Estudiantes beneficiados por año"
-            alto={280}
-            alClic={(n) => f.setAnios(alternar(f.anios, Number(n)))}
-            opcion={columnas({ categorias: anios.map(String), series: [{ nombre: 'Beneficiados', color, datos: porAnio }], tema, fmt: num, seleccion: f.anios.map(String) })}
-          />
-        </Tarjeta>
-
-        <Tarjeta titulo="Beneficiados por municipio" nota={nota(pMuni.length)} tabla={tabla('Municipio', pMuni, 'beneficiados-por-municipio')}>
-          <Grafico
-            etiqueta="Estudiantes beneficiados por municipio"
-            alto={altoBarras(Math.min(TOP, pMuni.length))}
-            alClic={(n) => f.setMunicipios(alternar(f.municipios, n))}
-            opcion={barrasH({ items: top(pMuni, TOP), color, tema, fmt: num, seleccion: f.municipios, etiquetas: true })}
-          />
-        </Tarjeta>
-
-        <Tarjeta titulo="Beneficiados por institución" nota={nota(pInst.length)} tabla={tabla('Institución', pInst, 'beneficiados-por-institucion')} className="lg:col-span-2">
-          <Grafico etiqueta="Estudiantes beneficiados por institución" alto={altoBarras(Math.min(TOP, pInst.length))} opcion={barrasH({ items: top(pInst, TOP), color, tema, fmt: num, etiquetas: true, anchoEtiqueta: 260 })} />
-        </Tarjeta>
-      </div>
-
-      <Tarjeta
-        titulo="Municipio → institución → sede"
-        nota="Despliega cada municipio para ver sus instituciones y sedes."
-        acciones={
-          <div className="flex items-center gap-2">
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar…" aria-label="Buscar municipio, institución o sede" className="w-40 rounded-lg border border-line bg-page px-2.5 py-1.5 text-sm outline-none focus:border-accent" />
-            <button type="button" onClick={todoAbierto} className="rounded-lg px-2 py-1.5 text-sm text-accentink hover:bg-wash">Desplegar todo</button>
-            <button type="button" onClick={() => setAbiertos(new Set())} className="rounded-lg px-2 py-1.5 text-sm text-accentink hover:bg-wash">Contraer</button>
+      <Contenido>
+        <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-14">
+          <MapaCaldas datos={datosMapa} placa={placa} fmt={num} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta="Estudiantes beneficiados por municipio" />
+          <div className="space-y-7">
+            <Cifra tam="xl" valor={num(total)} etiqueta="estudiantes beneficiados" />
+            <p className="text-xl leading-relaxed text-ink2">
+              En <Marca>{num(unicos(filas, (b) => b.municipio).size)} municipios</Marca>, <Marca>{num(unicos(filas, (b) => `${b.municipio}|${b.institucion}`).size)} instituciones</Marca> y <Marca>{num(unicos(filas, (b) => `${b.municipio}|${b.institucion}|${b.sede}`).size)} sedes</Marca>.
+            </p>
+            <div>
+              <p className="mb-3 text-sm font-semibold text-ink2">Por año. Toca uno para filtrar.</p>
+              <Vertices items={anios.map((a, i) => ({ clave: String(a), etiqueta: String(a), valor: num(porAnio[i]) }))} seleccion={f.anios.map(String)} onToggle={(c) => f.setAnios(alternar(f.anios, Number(c)))} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-ink2">Mostrando: {descripcionFiltros(f)}</p>
+              <BarraFiltros />
+            </div>
           </div>
-        }
-      >
-        <div className="max-h-[520px] overflow-auto rounded-lg border border-line">
-          <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-surface">
-              <tr>
-                <th scope="col" className="border-b border-line px-3 py-2 text-left font-medium text-ink2">Lugar</th>
-                <th scope="col" className="border-b border-line px-3 py-2 text-right font-medium text-ink2">Beneficiados</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibles.map((n) => (
-                <tr key={n.clave} className="border-b border-line last:border-0 hover:bg-wash">
-                  <td className="px-3 py-1.5" style={{ paddingLeft: 12 + n.nivel * 22 }}>
-                    {n.hijos.length ? (
-                      <button type="button" aria-expanded={abiertos.has(n.clave) || !!q} onClick={() => alt(n.clave)} className={`flex items-center gap-1.5 text-left ${n.nivel === 0 ? 'font-semibold' : 'font-medium'}`}>
-                        <span aria-hidden="true" className="inline-block w-3 text-muted">{abiertos.has(n.clave) || q ? '▾' : '▸'}</span>
-                        {n.nombre}
-                      </button>
-                    ) : (
-                      <span className="pl-[18px] text-ink2">{n.nombre}</span>
-                    )}
-                  </td>
-                  <td className="tabular px-3 py-1.5 text-right">{num(n.total)}</td>
-                </tr>
-              ))}
-              {visibles.length === 0 && (
-                <tr>
-                  <td colSpan={2} className="px-3 py-6 text-center text-muted">Sin datos con los filtros actuales</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
         </div>
-      </Tarjeta>
-    </div>
+
+        <Seccion titulo="Municipio, institución y sede" nota="El tamaño de cada cuadro son sus estudiantes. Toca un municipio para entrar a sus instituciones, y una institución para ver sus sedes." tono="lavado">
+          <Grafico etiqueta="Estudiantes beneficiados por municipio, institución y sede" alto={560} opcion={opcionArbol} />
+        </Seccion>
+
+        <Seccion
+          titulo="La lista completa"
+          nota="Despliega cada municipio para ver sus instituciones y sedes."
+          acciones={
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <Icono n="buscar" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar…" aria-label="Buscar municipio, institución o sede" className="w-44 rounded-full bg-white py-2 pl-9 pr-3 text-sm outline-none ring-1 ring-line focus:ring-main" />
+              </div>
+              <button type="button" onClick={todoAbierto} className="rounded-full px-3 py-2 text-sm font-bold text-accentink hover:bg-wash">
+                Desplegar todo
+              </button>
+              <button type="button" onClick={() => setAbiertos(new Set())} className="rounded-full px-3 py-2 text-sm font-bold text-accentink hover:bg-wash">
+                Contraer
+              </button>
+            </div>
+          }
+        >
+          <div className="max-h-[560px] overflow-auto rounded-2xl bg-white ring-1 ring-line">
+            <table className="w-full border-collapse text-sm">
+              <thead className="sticky top-0 bg-white">
+                <tr>
+                  <th scope="col" className="border-b-2 border-main px-4 py-2.5 text-left font-bold">Lugar</th>
+                  <th scope="col" className="border-b-2 border-main px-4 py-2.5 text-right font-bold">Beneficiados</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibles.map((n) => (
+                  <tr key={n.clave} className="border-b border-line last:border-0 hover:bg-wash/60">
+                    <td className="px-4 py-2" style={{ paddingLeft: 16 + n.nivel * 24 }}>
+                      {n.hijos.length ? (
+                        <button type="button" aria-expanded={abiertos.has(n.clave) || !!q} onClick={() => alternarFila(n.clave)} className={`flex items-center gap-2 text-left ${n.nivel === 0 ? 'font-extrabold' : 'font-bold'}`}>
+                          <Icono n={abiertos.has(n.clave) || q ? 'chevron' : 'derecha'} size={14} className="text-muted" />
+                          {n.nombre}
+                        </button>
+                      ) : (
+                        <span className="pl-[22px] text-ink2">{n.nombre}</span>
+                      )}
+                    </td>
+                    <td className="cota px-4 py-2 text-right">{num(n.total)}</td>
+                  </tr>
+                ))}
+                {visibles.length === 0 && (
+                  <tr>
+                    <td colSpan={2} className="px-4 py-6 text-center text-muted">
+                      Sin datos con los filtros actuales
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Seccion>
+      </Contenido>
+    </>
   )
 }

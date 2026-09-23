@@ -4,17 +4,19 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#6D2EE8" />
     <meta name="description" content="Inversión de la Gobernación de Caldas en educación rural: Modelos Flexibles y Universidad en el Campo." />
     <title>Educación rural en Caldas</title>
-    <script>
-      // Aplica el tema guardado antes de pintar, para evitar el destello claro/oscuro.
-      try {
-        var t = localStorage.getItem('tema')
-        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t)
-      } catch (e) {}
-    </script>
   </head>
   <body>
+    <!--
+      THESIS: la inversión como relieve. Un atlas hipsométrico de Caldas donde el mapa real es la interfaz; rechaza el tablero de tarjetas KPI + barras.
+      OWN-WORLD: pliego de atlas sobre papel claro; cada pestaña es una lámina con su propia familia de color (violeta, azul, magenta, verde, ámbar, coral) y su escala de tintas de valle a cumbre; tinta índigo; cotas en mono; tipografía Bricolage Grotesque.
+      STORY: el visitante ve dónde cayó el recurso, quién lo aportó y a quién llegó, y toca el mapa para filtrar todo lo demás.
+      FIRST VIEWPORT: a la izquierda la cifra total en gran formato y una frase con los conteos; a la derecha el mapa de los municipios tintados por inversión, con su leyenda de cotas; sobre ambos la cabecera de color de la lámina.
+      FORM: atlas hipsométrico (posición 6 de la lista; semilla 72a3676a).
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

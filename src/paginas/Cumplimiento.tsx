@@ -1,17 +1,21 @@
 import { useMemo, useState } from 'react'
-import { Grafico } from '../components/Grafico'
 import { Segmentado } from '../components/controles'
+import { Grafico } from '../components/Grafico'
+import { Icono } from '../components/Icono'
+import { Aviso, Cifra, Contenido, Marca, PlacaCabecera, Seccion } from '../components/Lamina'
 import { Tabla } from '../components/Tabla'
-import { Aviso, Kpi, Kpis, Tarjeta } from '../components/Tarjetas'
-import { sumar, unicos } from '../lib/agregar'
-import { colorAportante } from '../lib/colores'
-import { cant, cop, copM, ejeM, num, pct } from '../lib/formato'
-import { columnas } from '../lib/graficos'
-import { useTema } from '../lib/tema'
+import { sumar } from '../lib/agregar'
+import { PLACAS, colorAportante } from '../lib/colores'
+import { cant, cop, copM, num, pct } from '../lib/formato'
+import { aclarar, sunburst, type Nodo } from '../lib/graficos'
 import { PROGRAMAS, type Meta, type Programa } from '../lib/tipos'
+import { useAngosto } from '../lib/angosto'
 import { useTablero } from '../lib/usarFiltrado'
 
+const placa = PLACAS.cumplimiento
 type Estado = 'sin' | 'curso' | 'cumple' | 'supera'
+const COLOR_ESTADO: Record<Estado, string> = { supera: '#0E8F4E', cumple: '#3CC47C', curso: '#2F6BFF', sin: '#BDB9D6' }
+const TEXTO_ESTADO: Record<Estado, string> = { supera: 'Superada', cumple: 'Cumplida', curso: 'En curso', sin: 'Sin meta' }
 
 function estadoMeta(m: Meta): Estado {
   if (m.meta <= 0) return 'sin'
@@ -26,16 +30,14 @@ function Avance({ m }: { m: Meta }) {
   const e = estadoMeta(m)
   if (e === 'sin') return <span className="text-muted">Sin meta</span>
   const r = m.ejecutado / m.meta
-  const color = e === 'curso' ? 'var(--accent)' : '#0ca30c'
-  const icono = e === 'curso' ? '◔' : e === 'cumple' ? '✓' : '▲'
-  const texto = e === 'curso' ? 'En curso' : e === 'cumple' ? 'Cumplida' : 'Superada'
   return (
-    <div className="flex min-w-44 items-center gap-2">
-      <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round(r * 100))} aria-label={`Avance de ${m.actividad}`} className="h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-grid">
-        <div className="h-full rounded-full" style={{ width: `${Math.min(100, r * 100)}%`, background: color }} />
+    <div className="flex min-w-48 items-center gap-2.5">
+      <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round(r * 100))} aria-label={`Avance de ${m.actividad}`} className="h-2.5 w-24 shrink-0 overflow-hidden rounded-full bg-wash">
+        <div className="h-full rounded-full" style={{ width: `${Math.min(100, r * 100)}%`, background: COLOR_ESTADO[e] }} />
       </div>
-      <span className="tabular whitespace-nowrap text-xs text-ink2">
-        <span aria-hidden="true">{icono}</span> {pct(r, 0)} · {texto}
+      <span className="cota inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-ink">
+        <Icono n={e === 'curso' ? 'encurso' : e === 'cumple' ? 'check' : 'arriba'} size={13} />
+        {pct(r, 0)} · {TEXTO_ESTADO[e]}
       </span>
     </div>
   )
@@ -43,7 +45,7 @@ function Avance({ m }: { m: Meta }) {
 
 export function Cumplimiento() {
   const { datos } = useTablero()
-  const { tema } = useTema()
+  const angosto = useAngosto()
   const [programa, setPrograma] = useState<Programa>('mf')
   const [vigenciaSel, setVigenciaSel] = useState<number | null>(null)
   const cfg = PROGRAMAS[programa]
@@ -65,12 +67,29 @@ export function Cumplimiento() {
   const cumplidas = conMeta.filter((m) => ['cumple', 'supera'].includes(estadoMeta(m))).length
   const superadas = conMeta.filter((m) => estadoMeta(m) === 'supera').length
 
-  const cofin = useMemo(() => {
-    const cats = [...unicos(metas, (m) => m.grupo)]
-    const suma = (g: string, k: 'departamento' | 'comite') => sumar(metas.filter((m) => m.grupo === g), (m) => m[k])
-    return { cats, depto: cats.map((g) => suma(g, 'departamento')), comite: cats.map((g) => suma(g, 'comite')) }
-  }, [metas])
-  const hayCofin = sumar(cofin.depto, (x) => x) + sumar(cofin.comite, (x) => x) > 0
+  // Sunburst: proyecto/proceso → actividad, del tamaño de su valor meta y del color de su estado
+  const arbol = useMemo<Nodo[]>(
+    () =>
+      grupos.map(([g, filas], i) => ({
+        name: g,
+        color: placa.apoyo[i % placa.apoyo.length],
+        children: filas.filter((m) => m.valorMeta > 0).map((m) => ({ name: m.actividad, value: m.valorMeta, color: COLOR_ESTADO[estadoMeta(m)] })),
+      })).filter((n) => n.children.length),
+    [grupos],
+  )
+  const opcionSol = useMemo(() => sunburst({ arbol, fmt: copM, centro: copM(valorMeta), sub: 'valor de las metas', compacto: angosto, sinEtiquetas: true }), [arbol, valorMeta, angosto])
+
+  // Cofinanciación (Universidad en el Campo)
+  const arbolCofin = useMemo<Nodo[]>(() => {
+    const parte = (nombre: string, k: 'departamento' | 'comite'): Nodo => ({
+      name: nombre,
+      color: colorAportante(nombre),
+      children: grupos.map(([g, filas], i) => ({ name: g, value: sumar(filas, (m) => m[k]), color: aclarar(colorAportante(nombre), Math.min(0.5, i * 0.09)) })).filter((c) => c.value > 0),
+    })
+    return [parte('Departamento de Caldas', 'departamento'), parte('Comité de Cafeteros', 'comite')].filter((n) => (n.children?.length ?? 0) > 0)
+  }, [grupos])
+  const totalCofin = arbolCofin.reduce((s, n) => s + (n.children ?? []).reduce((t, c) => t + (c.value ?? 0), 0), 0)
+  const opcionCofin = useMemo(() => sunburst({ arbol: arbolCofin, fmt: copM, centro: copM(totalCofin), sub: 'cofinanciación', compacto: angosto }), [arbolCofin, totalCofin, angosto])
 
   const convocados = useMemo(() => {
     const m = new Map<string, { actividad: string; convocados: number; valor: number; municipios: Set<string> }>()
@@ -87,99 +106,99 @@ export function Cumplimiento() {
   }, [datos, programa])
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">Cumplimiento de metas</h2>
-          <p className="mt-1 max-w-2xl text-sm text-ink2">Meta del convenio frente a lo ejecutado, por actividad. Las metas y lo ejecutado se actualizan desde el panel de administración.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Segmentado etiqueta="Programa" valor={programa} onChange={(p) => { setPrograma(p); setVigenciaSel(null) }} opciones={[{ id: 'mf', texto: 'Modelos Flexibles' }, { id: 'uc', texto: 'Universidad en el Campo' }]} />
-          {vigencias.length > 0 && (
-            <label className="flex items-center gap-2 text-sm text-muted">
-              Vigencia
-              <select value={vigencia} onChange={(e) => setVigenciaSel(Number(e.target.value))} className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-ink">
-                {vigencias.map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </label>
-          )}
-        </div>
-      </div>
+    <>
+      <PlacaCabecera placa={placa} titulo="Lo prometido frente a lo hecho" texto="La meta del convenio contra lo ejecutado, actividad por actividad. Las metas y lo ejecutado se actualizan desde el panel de administración.">
+        <Segmentado sobreCampo etiqueta="Programa" valor={programa} onChange={(p) => { setPrograma(p); setVigenciaSel(null) }} opciones={[{ id: 'mf', texto: 'Modelos Flexibles' }, { id: 'uc', texto: 'Universidad en el Campo' }]} />
+        {vigencias.length > 0 && (
+          <label className="flex items-center gap-2 text-sm font-bold">
+            Vigencia
+            <select value={vigencia} onChange={(e) => setVigenciaSel(Number(e.target.value))} className="cota rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink outline-none">
+              {vigencias.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </PlacaCabecera>
 
-      {metas.length === 0 ? (
-        <Aviso>No hay metas registradas para {cfg.nombre}. Se cargan desde el panel de administración.</Aviso>
-      ) : (
-        <>
-          <Kpis>
-            <Kpi heroe titulo={`Avance del valor meta · ${vigencia}`} valor={valorMeta ? pct(valorEj / valorMeta) : '—'} detalle={`${copM(valorEj)} ejecutados de ${copM(valorMeta)}`} />
-            <Kpi titulo="Actividades con meta" valor={num(conMeta.length)} detalle={`${num(cumplidas)} cumplidas`} />
-            <Kpi titulo="Metas superadas" valor={num(superadas)} detalle={conMeta.length ? `${pct(superadas / conMeta.length, 0)} de las actividades` : undefined} />
-          </Kpis>
-
-          <Tarjeta titulo={`Metas por ${cfg.grupo.toLowerCase()} y actividad`} nota="Meta y ejecutado en unidades de cada actividad; valores en pesos.">
-            <div className="overflow-x-auto rounded-lg border border-line">
-              <table className="w-full border-collapse text-sm">
-                <thead className="bg-surface">
-                  <tr className="text-ink2">
-                    <th scope="col" className="border-b border-line px-3 py-2 text-left font-medium">Actividad</th>
-                    <th scope="col" className="border-b border-line px-3 py-2 text-right font-medium">Meta</th>
-                    <th scope="col" className="border-b border-line px-3 py-2 text-right font-medium">Ejecutado</th>
-                    <th scope="col" className="border-b border-line px-3 py-2 text-left font-medium">Avance</th>
-                    <th scope="col" className="border-b border-line px-3 py-2 text-right font-medium">Faltante</th>
-                    <th scope="col" className="border-b border-line px-3 py-2 text-right font-medium">Adicional</th>
-                    <th scope="col" className="border-b border-line px-3 py-2 text-right font-medium">Valor meta</th>
-                    <th scope="col" className="border-b border-line px-3 py-2 text-right font-medium">Valor ejecutado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {grupos.map(([g, filas]) => (
-                    <FragmentoGrupo key={g} grupo={g} filas={filas} />
+      <Contenido>
+        {metas.length === 0 ? (
+          <Aviso>No hay metas registradas para {cfg.nombre}. Se cargan desde el panel de administración.</Aviso>
+        ) : (
+          <>
+            <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14">
+              <div className="space-y-7">
+                <Cifra tam="xl" valor={valorMeta ? pct(valorEj / valorMeta) : '—'} etiqueta={`del valor de las metas ya se ejecutó · vigencia ${vigencia}`} color="var(--ink)" />
+                <p className="text-xl leading-relaxed text-ink2">
+                  Se ejecutaron <Marca>{copM(valorEj)}</Marca> de <Marca>{copM(valorMeta)}</Marca>. De <Marca>{num(conMeta.length)} actividades con meta</Marca>, <Marca color="#BFEBCF">{num(cumplidas)} están cumplidas</Marca> y <Marca color="#BFEBCF">{num(superadas)} superaron su meta</Marca>.
+                </p>
+                <div>
+                  <p className="mb-2 text-sm font-semibold text-ink2">Anillo interior: {cfg.grupo.toLowerCase()}. Anillo exterior: cada actividad, del color de su avance.</p>
+                  <ul className="mb-4 space-y-1.5">
+                    {arbol.map((n) => (
+                      <li key={n.name} className="flex items-center gap-2.5 text-sm font-bold" style={{ color: 'var(--ink)' }}>
+                        <span className="size-3.5 shrink-0 rounded-full" style={{ background: n.color }} />
+                        {n.name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold">
+                  {(['supera', 'cumple', 'curso'] as Estado[]).map((e) => (
+                    <li key={e} className="flex items-center gap-2">
+                      <span className="size-3.5 rounded-full" style={{ background: COLOR_ESTADO[e] }} />
+                      {TEXTO_ESTADO[e]}
+                    </li>
                   ))}
-                </tbody>
-              </table>
+                </ul>
+              </div>
+              <Grafico etiqueta={`Metas de ${cfg.nombre} por ${cfg.grupo.toLowerCase()} y actividad, coloreadas por avance`} alto={angosto ? 380 : 600} opcion={opcionSol} />
             </div>
-          </Tarjeta>
 
-          {hayCofin && (
-            <Tarjeta
-              titulo="Cofinanciación por proceso"
-              nota="Cuánto aportan el Departamento y el Comité de Cafeteros en cada proceso."
-              tabla={{
-                archivo: 'cofinanciacion-por-proceso',
-                columnas: [{ clave: 'g', titulo: cfg.grupo }, { clave: 'd', titulo: 'Departamento de Caldas', tipo: 'moneda' }, { clave: 'c', titulo: 'Comité de Cafeteros', tipo: 'moneda' }],
-                filas: cofin.cats.map((g, i) => ({ g, d: cofin.depto[i], c: cofin.comite[i] })),
-              }}
-            >
-              <Grafico
-                etiqueta="Cofinanciación del Departamento y del Comité por proceso"
-                alto={320}
-                opcion={columnas({
-                  categorias: cofin.cats,
-                  series: [
-                    { nombre: 'Departamento de Caldas', color: colorAportante(tema, 'Depto. de Caldas'), datos: cofin.depto },
-                    { nombre: 'Comité de Cafeteros', color: colorAportante(tema, 'Comité de Cafeteros'), datos: cofin.comite },
-                  ],
-                  tema,
-                  fmt: copM,
-                  fmtEje: ejeM,
-                  totales: true,
-                })}
-              />
-            </Tarjeta>
-          )}
+            <Seccion titulo={`Metas por ${cfg.grupo.toLowerCase()} y actividad`} nota="Meta y ejecutado en las unidades de cada actividad; valores en pesos.">
+              <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
+                <table className="w-full border-collapse text-sm">
+                  <thead className="bg-white">
+                    <tr>
+                      {['Actividad', 'Meta', 'Ejecutado', 'Avance', 'Faltante', 'Adicional', 'Valor meta', 'Valor ejecutado'].map((h, i) => (
+                        <th key={h} scope="col" className={`border-b-2 border-main px-3 py-2.5 font-bold ${i === 0 || i === 3 ? 'text-left' : 'text-right'}`}>
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {grupos.map(([g, filas]) => (
+                      <FragmentoGrupo key={g} grupo={g} filas={filas} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Seccion>
 
-          {convocados.length > 0 && (
-            <Tarjeta titulo="Convocados que no asistieron" nota="Se convocó y se invirtió, pero no hubo asistencia. Cuenta en la inversión total, y aquí se ve aparte.">
-              <Tabla
-                archivo="convocados-que-no-asistieron"
-                columnas={[{ clave: 'actividad', titulo: 'Actividad' }, { clave: 'convocados', titulo: 'Convocatorias sin asistencia', tipo: 'cantidad' }, { clave: 'municipios', titulo: 'Municipios', tipo: 'numero' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' }]}
-                filas={convocados}
-              />
-            </Tarjeta>
-          )}
-        </>
-      )}
-    </div>
+            {arbolCofin.length > 0 && (
+              <Seccion titulo="Cofinanciación" nota="Cuánto aportan el Departamento de Caldas y el Comité de Cafeteros a cada proceso." tono="lavado" tabla={{ archivo: 'cofinanciacion', columnas: [{ clave: 'a', titulo: 'Aportante' }, { clave: 'g', titulo: cfg.grupo }, { clave: 'v', titulo: 'Valor', tipo: 'moneda' }], filas: arbolCofin.flatMap((n) => (n.children ?? []).map((c) => ({ a: n.name, g: c.name, v: c.value ?? 0 }))) }}>
+                <div className="mx-auto max-w-2xl">
+                  <Grafico etiqueta="Cofinanciación por aportante y proceso" alto={520} opcion={opcionCofin} />
+                </div>
+              </Seccion>
+            )}
+
+            {convocados.length > 0 && (
+              <Seccion titulo="Convocados que no asistieron" nota="Se convocó y se invirtió, pero no hubo asistencia. Cuenta en la inversión total y aquí se ve aparte.">
+                <Tabla
+                  archivo="convocados-que-no-asistieron"
+                  columnas={[{ clave: 'actividad', titulo: 'Actividad' }, { clave: 'convocados', titulo: 'Convocatorias sin asistencia', tipo: 'cantidad' }, { clave: 'municipios', titulo: 'Municipios', tipo: 'numero' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' }]}
+                  filas={convocados}
+                />
+              </Seccion>
+            )}
+          </>
+        )}
+      </Contenido>
+    </>
   )
 }
 
@@ -188,21 +207,25 @@ function FragmentoGrupo({ grupo, filas }: { grupo: string; filas: Meta[] }) {
   const ve = sumar(filas, (m) => m.valorEjecutado)
   return (
     <>
-      <tr className="bg-wash">
-        <th scope="colgroup" colSpan={6} className="px-3 py-1.5 text-left font-semibold text-ink">{grupo}</th>
-        <td className="tabular px-3 py-1.5 text-right font-semibold">{cop(vm)}</td>
-        <td className="tabular px-3 py-1.5 text-right font-semibold">{cop(ve)}</td>
+      <tr className="bg-wash/70">
+        <th scope="colgroup" colSpan={6} className="px-3 py-2 text-left text-base font-extrabold" style={{ color: 'var(--ink)' }}>
+          {grupo}
+        </th>
+        <td className="cota px-3 py-2 text-right font-bold">{cop(vm)}</td>
+        <td className="cota px-3 py-2 text-right font-bold">{cop(ve)}</td>
       </tr>
       {filas.map((m, i) => (
-        <tr key={i} className="border-b border-line last:border-0 hover:bg-wash">
-          <td className="px-3 py-1.5 pl-6">{m.actividad}</td>
-          <td className="tabular px-3 py-1.5 text-right">{cant(m.meta)}</td>
-          <td className="tabular px-3 py-1.5 text-right">{cant(m.ejecutado)}</td>
-          <td className="px-3 py-1.5"><Avance m={m} /></td>
-          <td className="tabular px-3 py-1.5 text-right">{m.faltante > 0 ? cant(m.faltante) : '—'}</td>
-          <td className="tabular px-3 py-1.5 text-right">{m.adicional ? cant(m.adicional) : '—'}</td>
-          <td className="tabular px-3 py-1.5 text-right">{cop(m.valorMeta)}</td>
-          <td className="tabular px-3 py-1.5 text-right">{cop(m.valorEjecutado)}</td>
+        <tr key={i} className="border-b border-line last:border-0 hover:bg-wash/40">
+          <td className="px-3 py-2 pl-6">{m.actividad}</td>
+          <td className="cota px-3 py-2 text-right">{cant(m.meta)}</td>
+          <td className="cota px-3 py-2 text-right">{cant(m.ejecutado)}</td>
+          <td className="px-3 py-2">
+            <Avance m={m} />
+          </td>
+          <td className="cota px-3 py-2 text-right">{m.faltante > 0 ? cant(m.faltante) : '—'}</td>
+          <td className="cota px-3 py-2 text-right">{m.adicional ? cant(m.adicional) : '—'}</td>
+          <td className="cota px-3 py-2 text-right">{cop(m.valorMeta)}</td>
+          <td className="cota px-3 py-2 text-right">{cop(m.valorEjecutado)}</td>
         </tr>
       ))}
     </>

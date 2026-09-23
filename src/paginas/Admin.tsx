@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Segmentado } from '../components/controles'
-import { Aviso } from '../components/Tarjetas'
+import { Aviso } from '../components/Lamina'
 import { admin, hayApi } from '../lib/api'
 import { alfa } from '../lib/agregar'
 import { useDatos } from '../lib/datos'

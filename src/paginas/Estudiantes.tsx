@@ -1,177 +1,155 @@
 import { useMemo, useState } from 'react'
-import { Grafico } from '../components/Grafico'
 import { Fila, MultiSelect } from '../components/controles'
-import type { TablaDatos } from '../components/Tabla'
-import { Kpi, Kpis, Tarjeta } from '../components/Tarjetas'
-import { agrupar, top, unicos, type Par } from '../lib/agregar'
-import { colorEstadoEstudiante, serie } from '../lib/colores'
+import { Grafico } from '../components/Grafico'
+import { Cafetal, Cifra, Contenido, MapaCaldas, Marca, PlacaCabecera, Posiciones, Seccion, Vertices } from '../components/Lamina'
+import { agrupar, alfa, unicos } from '../lib/agregar'
+import { PLACAS, colorEstadoEstudiante } from '../lib/colores'
 import { alternar } from '../lib/filtros'
 import { num, pct } from '../lib/formato'
-import { altoBarras, barrasH, columnas } from '../lib/graficos'
-import { useTema } from '../lib/tema'
+import { aclarar, sunburst, type Nodo } from '../lib/graficos'
 import type { Estudiante } from '../lib/tipos'
+import { useAngosto } from '../lib/angosto'
 import { pasa, useTablero } from '../lib/usarFiltrado'
 
-type Local = 'cohorte' | 'universidad' | 'programa' | 'estado' | 'genero' | 'institucion'
+type Local = 'cohorte' | 'universidad' | 'programa' | 'estado' | 'institucion'
 type Dim = Local | 'municipio'
-const TOP = 12
+const placa = PLACAS.estudiantes
 const ORDEN_ESTADO = ['Graduado', 'Activo', 'Pendiente de grado', 'Desertor']
 const ordenEstado = (e: string) => (ORDEN_ESTADO.indexOf(e) < 0 ? 99 : ORDEN_ESTADO.indexOf(e))
+const VACIO: Record<Local, string[]> = { cohorte: [], universidad: [], programa: [], estado: [], institucion: [] }
 
 export function Estudiantes() {
   const { datos, f } = useTablero()
-  const { tema } = useTema()
-  const [sel, setSel] = useState<Record<Local, string[]>>({ cohorte: [], universidad: [], programa: [], estado: [], genero: [], institucion: [] })
+  const angosto = useAngosto()
+  const [sel, setSel] = useState<Record<Local, string[]>>(VACIO)
 
   // Solo los financiados por la Gobernación. Sin nombres: el tablero es público.
   const filas = useMemo(() => datos.estudiantes.filter((e) => /gobernaci/i.test(e.financiador)), [datos])
 
   const vistas = useMemo(() => {
-    const valorDe: Record<Local, (e: Estudiante) => string> = {
-      cohorte: (e) => String(e.anioIngreso),
-      universidad: (e) => e.universidad,
-      programa: (e) => e.programa,
-      estado: (e) => e.estado,
-      genero: (e) => e.genero,
-      institucion: (e) => e.institucion,
-    }
+    const valorDe: Record<Local, (e: Estudiante) => string> = { cohorte: (e) => String(e.anioIngreso), universidad: (e) => e.universidad, programa: (e) => e.programa, estado: (e) => e.estado, institucion: (e) => e.institucion }
     const ok = (e: Estudiante, omitir?: Dim) => (omitir === 'municipio' || pasa(f, null, e.municipio)) && (Object.keys(valorDe) as Local[]).every((d) => d === omitir || !sel[d].length || sel[d].includes(valorDe[d](e)))
     const de = (omitir?: Dim) => filas.filter((e) => ok(e, omitir))
-    return { todas: de(), cohorte: de('cohorte'), universidad: de('universidad'), programa: de('programa'), estado: de('estado'), genero: de('genero'), institucion: de('institucion'), municipio: de('municipio') }
+    return { todas: de(), cohorte: de('cohorte'), universidad: de('universidad'), municipio: de('municipio') }
   }, [filas, f, sel])
 
   const opciones = useMemo(() => {
     const u = (c: (e: Estudiante) => string) => [...unicos(filas, c)]
-    return { cohorte: u((e) => String(e.anioIngreso)), universidad: u((e) => e.universidad), programa: u((e) => e.programa), estado: u((e) => e.estado), institucion: u((e) => e.institucion) }
+    return { cohorte: u((e) => String(e.anioIngreso)), universidad: u((e) => e.universidad), programa: u((e) => e.programa), estado: u((e) => e.estado), institucion: u((e) => e.institucion), municipio: u((e) => e.municipio) }
   }, [filas])
 
   const alt = (d: Local) => (n: string) => setSel((s) => ({ ...s, [d]: alternar(s[d], n) }))
   const set = (d: Local) => (l: string[]) => setSel((s) => ({ ...s, [d]: l }))
-  const hayLocales = Object.values(sel).some((l) => l.length)
+  const hayLocales = Object.values(sel).some((l) => l.length) || f.municipios.length > 0
 
   const t = vistas.todas
   const cuenta = (re: RegExp) => t.filter((e) => re.test(e.estado)).length
   const graduados = t.filter((e) => /^graduado$/i.test(e.estado)).length
   const desertores = cuenta(/desert/i)
-  const pendientes = cuenta(/pendiente/i)
-  const activos = t.filter((e) => /^activo$/i.test(e.estado)).length
 
-  const uno = () => 1
-  const pares = (v: Estudiante[], clave: (e: Estudiante) => string): Par[] => agrupar(v, clave, uno)
-  const pEstado = pares(vistas.estado, (e) => e.estado).sort((a, b) => ordenEstado(a.nombre) - ordenEstado(b.nombre))
-  const pUni = pares(vistas.universidad, (e) => e.universidad)
-  const pProg = pares(vistas.programa, (e) => e.programa)
-  const pMuni = pares(vistas.municipio, (e) => e.municipio)
-  const pInst = pares(vistas.institucion, (e) => e.institucion)
-  const pGen = pares(vistas.genero, (e) => e.genero)
+  const estados = useMemo(() => [...new Set(filas.map((e) => e.estado))].sort((a, b) => ordenEstado(a) - ordenEstado(b)), [filas])
+  const cohortes = useMemo(() => [...new Set(filas.map((e) => String(e.anioIngreso)))].sort(), [filas])
+  const conteoCohortes = useMemo(
+    () =>
+      cohortes.map((c) => ({
+        cohorte: c,
+        conteos: Object.fromEntries(estados.map((e) => [e, vistas.cohorte.filter((x) => String(x.anioIngreso) === c && x.estado === e).length])),
+      })),
+    [cohortes, estados, vistas.cohorte],
+  )
+  const pEstado = agrupar(t, (e) => e.estado, () => 1).sort((a, b) => ordenEstado(a.nombre) - ordenEstado(b.nombre))
 
-  const cohortes = [...new Set(filas.map((e) => e.anioIngreso))].sort()
-  const estados = [...new Set(filas.map((e) => e.estado))].sort((a, b) => ordenEstado(a) - ordenEstado(b))
+  const datosMapa = useMemo(() => agrupar(vistas.municipio, (e) => e.municipio, () => 1).map((p) => ({ name: p.nombre, value: p.valor })), [vistas.municipio])
+
+  const arbol = useMemo<Nodo[]>(() => {
+    const m = new Map<string, Map<string, number>>()
+    vistas.universidad.forEach((e) => {
+      const pm = m.get(e.universidad) ?? new Map<string, number>()
+      pm.set(e.programa, (pm.get(e.programa) ?? 0) + 1)
+      m.set(e.universidad, pm)
+    })
+    return [...m.entries()]
+      .sort((a, b) => [...b[1].values()].reduce((s, n) => s + n, 0) - [...a[1].values()].reduce((s, n) => s + n, 0))
+      .map(([u, pm], i) => {
+        const color = placa.apoyo[i % placa.apoyo.length]
+        return { name: u, color, children: [...pm.entries()].sort((a, b) => b[1] - a[1]).map(([p, n], j) => ({ name: p, value: n, color: aclarar(color, Math.min(0.55, 0.1 + j * 0.08)) })) }
+      })
+  }, [vistas.universidad])
+  const opcionSol = useMemo(() => sunburst({ arbol, fmt: (n) => `${num(n)} estudiantes`, centro: num(vistas.universidad.length), sub: 'estudiantes', compacto: angosto }), [arbol, vistas.universidad.length, angosto])
+
+  const genero = agrupar(t, (e) => e.genero || 'Sin dato', () => 1)
   const aniosGrad = [...new Set(t.map((e) => e.anioGraduacion).filter((a): a is number => a !== null))].sort()
 
-  const tabla = (col: string, p: Par[], archivo: string): TablaDatos => ({
-    archivo,
-    columnas: [{ clave: 'nombre', titulo: col }, { clave: 'valor', titulo: 'Estudiantes', tipo: 'numero' }],
-    filas: p.map((x) => ({ nombre: x.nombre, valor: x.valor })),
-  })
-  const barras = (p: Par[], nombre: string, alClic: (n: string) => void, seleccion: string[], ancho?: number, colorDe?: (n: string) => string) => {
-    const items = top(p, TOP).map((x) => ({ ...x, color: colorDe?.(x.nombre) }))
-    return <Grafico etiqueta={`Estudiantes por ${nombre}`} alto={altoBarras(items.length)} alClic={alClic} opcion={barrasH({ items, color: serie(tema, 0), tema, fmt: num, seleccion, etiquetas: true, anchoEtiqueta: ancho })} />
-  }
-  const nota = (todos: number) => (todos > TOP ? `Los ${TOP} mayores de ${num(todos)}. La tabla muestra todos.` : undefined)
-
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">Estudiantes técnicos y tecnólogos</h2>
-        <p className="mt-1 max-w-2xl text-sm text-ink2">Estudiantes de Universidad en el Campo cuya formación financia la Gobernación de Caldas. No se muestran nombres. El filtro de año no aplica aquí: usa la cohorte (año de ingreso).</p>
-      </div>
+    <>
+      <PlacaCabecera placa={placa} titulo="Cada punto, un estudiante" texto="Estudiantes técnicos y tecnólogos de Universidad en el Campo cuya formación financia la Gobernación de Caldas. No se muestran nombres." />
 
-      <Fila>
-        <MultiSelect etiqueta="Cohorte" opciones={opciones.cohorte} valor={sel.cohorte} onChange={set('cohorte')} ancho="w-44" />
-        <MultiSelect etiqueta="Universidad" opciones={opciones.universidad} valor={sel.universidad} onChange={set('universidad')} />
-        <MultiSelect etiqueta="Programa" opciones={opciones.programa} valor={sel.programa} onChange={set('programa')} ancho="w-96" />
-        <MultiSelect etiqueta="Estado" opciones={opciones.estado} valor={sel.estado} onChange={set('estado')} />
-        <MultiSelect etiqueta="Institución" opciones={opciones.institucion} valor={sel.institucion} onChange={set('institucion')} ancho="w-80" />
-        {hayLocales && (
-          <button type="button" onClick={() => setSel({ cohorte: [], universidad: [], programa: [], estado: [], genero: [], institucion: [] })} className="rounded-lg px-2.5 py-1.5 text-sm text-accentink hover:bg-wash">
-            Quitar estos filtros
-          </button>
-        )}
-      </Fila>
+      <Contenido>
+        <Fila>
+          <MultiSelect etiqueta="Cohorte" opciones={opciones.cohorte} valor={sel.cohorte} onChange={set('cohorte')} ancho="w-48" />
+          <MultiSelect etiqueta="Universidad" opciones={opciones.universidad} valor={sel.universidad} onChange={set('universidad')} />
+          <MultiSelect etiqueta="Programa" opciones={opciones.programa} valor={sel.programa} onChange={set('programa')} ancho="w-96" />
+          <MultiSelect etiqueta="Estado" opciones={opciones.estado} valor={sel.estado} onChange={set('estado')} />
+          <MultiSelect etiqueta="Institución" opciones={opciones.institucion} valor={sel.institucion} onChange={set('institucion')} ancho="w-80" />
+          <MultiSelect etiqueta="Municipio" opciones={opciones.municipio.sort(alfa)} valor={f.municipios} onChange={f.setMunicipios} />
+          {hayLocales && (
+            <button type="button" onClick={() => { setSel(VACIO); f.setMunicipios([]) }} className="rounded-full px-3 py-2 text-sm font-bold text-accentink underline decoration-2 underline-offset-4 hover:bg-wash">
+              Quitar estos filtros
+            </button>
+          )}
+        </Fila>
 
-      <Kpis columnas={5}>
-        <Kpi titulo="Estudiantes financiados" valor={num(t.length)} detalle={`${num(unicos(t, (e) => e.municipio).size)} municipios · ${num(unicos(t, (e) => e.programa).size)} programas`} />
-        <Kpi titulo="Graduados" valor={num(graduados)} detalle={t.length ? `▲ ${pct(graduados / t.length)} del total` : undefined} />
-        <Kpi titulo="Deserción" valor={num(desertores)} detalle={t.length ? `▼ ${pct(desertores / t.length)} del total` : undefined} />
-        <Kpi titulo="Activos" valor={num(activos)} />
-        <Kpi titulo="Pendientes de grado" valor={num(pendientes)} />
-      </Kpis>
+        <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)] lg:gap-14">
+          <div>
+            <Cafetal cohortes={conteoCohortes} estados={estados} colorDe={colorEstadoEstudiante} seleccionEstado={sel.estado} seleccionCohorte={sel.cohorte} alClicEstado={alt('estado')} alClicCohorte={alt('cohorte')} />
+            <p className="mt-5 max-w-xl text-sm text-ink2">Cada punto es un estudiante, agrupado por el año en que ingresó y pintado por su estado hoy. Toca un color o un año para filtrar.</p>
+          </div>
+          <div className="space-y-7">
+            <Cifra tam="xl" valor={num(t.length)} etiqueta="estudiantes financiados por la Gobernación" />
+            <p className="text-xl leading-relaxed text-ink2">
+              <Marca color="#BFEBCF">{t.length ? pct(graduados / t.length) : '—'}</Marca> ya se graduó y <Marca color="#FFC9CB">{t.length ? pct(desertores / t.length) : '—'}</Marca> desertó.
+            </p>
+            <Posiciones items={pEstado.map((p) => ({ nombre: p.nombre, valor: p.valor, color: colorEstadoEstudiante(p.nombre) }))} fmt={num} onClic={alt('estado')} seleccion={sel.estado} />
+          </div>
+        </div>
 
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-        <Tarjeta titulo="Estado de los estudiantes" nota="Toca una barra para filtrar por estado." tabla={tabla('Estado', pEstado, 'estudiantes-por-estado')}>
-          {barras(pEstado, 'estado', alt('estado'), sel.estado, 150, (n) => colorEstadoEstudiante(tema, n))}
-        </Tarjeta>
+        <div className="grid items-start gap-12 lg:grid-cols-2">
+          <Seccion titulo="¿De dónde son?" nota="Estudiantes por municipio. Toca uno para filtrar." tabla={{ archivo: 'estudiantes-por-municipio', columnas: [{ clave: 'nombre', titulo: 'Municipio' }, { clave: 'valor', titulo: 'Estudiantes', tipo: 'numero' }], filas: datosMapa.map((d) => ({ nombre: d.name, valor: d.value })) }}>
+            <MapaCaldas datos={datosMapa} placa={placa} fmt={num} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta="Estudiantes técnicos por municipio" />
+          </Seccion>
 
-        <Tarjeta
-          titulo="¿Cómo va cada cohorte?"
-          nota="Estudiantes por año de ingreso, según su estado hoy."
-          tabla={{
-            archivo: 'estudiantes-por-cohorte',
-            columnas: [{ clave: 'cohorte', titulo: 'Cohorte' }, ...estados.map((e) => ({ clave: e, titulo: e, tipo: 'numero' as const }))],
-            filas: cohortes.map((c) => ({ cohorte: String(c), ...Object.fromEntries(estados.map((e) => [e, vistas.cohorte.filter((x) => x.anioIngreso === c && x.estado === e).length])) })),
-          }}
-        >
-          <Grafico
-            etiqueta="Estudiantes por cohorte y estado"
-            alto={300}
-            alClic={alt('cohorte')}
-            opcion={columnas({
-              categorias: cohortes.map(String),
-              series: estados.map((e) => ({ nombre: e, color: colorEstadoEstudiante(tema, e), datos: cohortes.map((c) => vistas.cohorte.filter((x) => x.anioIngreso === c && x.estado === e).length) })),
-              tema,
-              fmt: num,
-              totales: true,
-              seleccion: sel.cohorte,
-            })}
-          />
-        </Tarjeta>
+          <Seccion titulo="¿Dónde estudian?" nota="Universidad y programa. Pasa el cursor para ver cuántos." tono="lavado" tabla={{ archivo: 'estudiantes-universidad-programa', columnas: [{ clave: 'u', titulo: 'Universidad' }, { clave: 'p', titulo: 'Programa' }, { clave: 'n', titulo: 'Estudiantes', tipo: 'numero' }], filas: arbol.flatMap((u) => (u.children ?? []).map((p) => ({ u: u.name, p: p.name, n: p.value ?? 0 }))) }}>
+            <Grafico etiqueta="Estudiantes por universidad y programa" alto={angosto ? 380 : 560} opcion={opcionSol} />
+          </Seccion>
+        </div>
 
-        <Tarjeta titulo="Por universidad" tabla={tabla('Universidad', pUni, 'estudiantes-por-universidad')}>
-          {barras(pUni, 'universidad', alt('universidad'), sel.universidad, 190)}
-        </Tarjeta>
+        <div className="grid items-start gap-12 lg:grid-cols-2">
+          <Seccion titulo="Género">
+            <div role="img" aria-label={genero.map((g) => `${g.nombre} ${num(g.valor)}`).join(', ')} className="flex h-6 overflow-hidden rounded-full ring-2 ring-white">
+              {genero.map((g, i) => (
+                <div key={g.nombre} style={{ width: `${(g.valor / Math.max(1, t.length)) * 100}%`, background: placa.apoyo[i % placa.apoyo.length] }} />
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-x-8 gap-y-2">
+              {genero.map((g, i) => (
+                <span key={g.nombre} className="flex items-center gap-2.5">
+                  <span className="size-3.5 rounded-full" style={{ background: placa.apoyo[i % placa.apoyo.length] }} />
+                  <span className="font-bold" style={{ color: 'var(--ink)' }}>
+                    {g.nombre}
+                  </span>
+                  <span className="cota">
+                    {num(g.valor)} · {pct(g.valor / Math.max(1, t.length))}
+                  </span>
+                </span>
+              ))}
+            </div>
+          </Seccion>
 
-        <Tarjeta titulo="Por programa" nota={nota(pProg.length)} tabla={tabla('Programa', pProg, 'estudiantes-por-programa')}>
-          {barras(pProg, 'programa', alt('programa'), sel.programa, 300)}
-        </Tarjeta>
-
-        <Tarjeta titulo="Por municipio" nota={nota(pMuni.length)} tabla={tabla('Municipio', pMuni, 'estudiantes-por-municipio')}>
-          {barras(pMuni, 'municipio', (n) => f.setMunicipios(alternar(f.municipios, n)), f.municipios)}
-        </Tarjeta>
-
-        <Tarjeta titulo="Por institución educativa" nota={nota(pInst.length)} tabla={tabla('Institución', pInst, 'estudiantes-por-institucion')}>
-          {barras(pInst, 'institución', alt('institucion'), sel.institucion, 200)}
-        </Tarjeta>
-
-        <Tarjeta titulo="Por género" tabla={tabla('Género', pGen, 'estudiantes-por-genero')}>
-          {barras(pGen, 'género', alt('genero'), sel.genero, 110)}
-        </Tarjeta>
-
-        <Tarjeta
-          titulo="Graduados por año de grado"
-          tabla={{
-            archivo: 'graduados-por-anio',
-            columnas: [{ clave: 'anio', titulo: 'Año de grado' }, { clave: 'n', titulo: 'Graduados', tipo: 'numero' }],
-            filas: aniosGrad.map((a) => ({ anio: String(a), n: t.filter((e) => e.anioGraduacion === a).length })),
-          }}
-        >
-          <Grafico
-            etiqueta="Graduados por año de grado"
-            alto={260}
-            opcion={columnas({ categorias: aniosGrad.map(String), series: [{ nombre: 'Graduados', color: serie(tema, 0), datos: aniosGrad.map((a) => t.filter((e) => e.anioGraduacion === a).length) }], tema, fmt: num })}
-          />
-        </Tarjeta>
-      </div>
-    </div>
+          <Seccion titulo="Graduados por año de grado" nota="Cuántos estudiantes recibieron su título cada año.">
+            <Vertices items={aniosGrad.map((a) => ({ clave: String(a), etiqueta: `Grado ${a}`, valor: num(t.filter((e) => e.anioGraduacion === a).length), detalle: 'graduados' }))} seleccion={[]} onToggle={() => undefined} />
+          </Seccion>
+        </div>
+      </Contenido>
+    </>
   )
 }

@@ -39,6 +39,9 @@ Sin tarjetas KPI. Cifras grandes sueltas sobre el fondo, frases con las cifras r
 - `Posiciones`: ranking como lista con punto de color, sin barras.
 Visuales ECharts (`lib/graficos.ts`): mapa, treemap con descenso, sunburst (niveles según la profundidad real), dona, burbujas de fuerza arrastrables. Cada visual tiene su tabla equivalente y descarga en CSV.
 
+## Logos institucionales
+Barra superior (fondo blanco): escudo Gobierno de Caldas · Secretaría de Educación y Comité de Cafeteros en vinotinto. Pie (banda del color de la lámina): el logo de la Gobernación sobre un recuadro blanco (su texto es gris y no se lee sobre color) y el del Comité en blanco, o en negro sobre el ámbar de Cobertura, donde el blanco no contrasta. Nunca se recolorean ni se deforman.
+
 ## Controles
 Píldoras: interruptor segmentado, chips de año, listas desplegables con búsqueda. Estado activo = campo de la lámina. Foco visible de 3 px en tinta. Iconos dibujados con un solo trazo (`Icono.tsx`), sin glifos ni emoji.
 

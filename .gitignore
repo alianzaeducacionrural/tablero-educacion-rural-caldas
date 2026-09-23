@@ -24,3 +24,6 @@ public/datos.local.json
 # Python
 __pycache__/
 *.pyc
+
+# Originales de los logos (los optimizados viven en src/assets/logos)
+logo/

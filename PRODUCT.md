@@ -28,10 +28,10 @@ Los datos viven en un Google Sheet (base de datos) servido por un Web App de App
 - Sin decidir: si "beneficiados" suma personas distintas o persona-año; a qué vigencia pertenecen las metas cargadas (provisional 2024).
 
 ## Brand Commitments
-Ninguna obligatoria: sin manual de marca ni logos. Paleta propia y libre. Nombre visible: "Educación rural en Caldas", con Gobernación de Caldas · Secretaría de Educación y Comité de Cafeteros como instituciones. El usuario pidió explícitamente: muchísimo color, algo novedoso y dinámico, no depender de gráficas de barras, y siempre tema claro.
+Logos institucionales entregados por el usuario (carpeta `logo/`, sin versionar; optimizados en `src/assets/logos/`): Gobierno de Caldas · Secretaría de Educación (a color, solo sobre fondo claro) y Comité de Cafeteros de Caldas / Federación Nacional de Cafeteros en tres versiones (vinotinto, negro y blanco). Deben aparecer siempre, sin deformarse ni recolorearse. Paleta propia y libre; sin manual de marca. Nombre visible: "Educación rural en Caldas", con Gobernación de Caldas · Secretaría de Educación y Comité de Cafeteros como instituciones. El usuario pidió explícitamente: muchísimo color, algo novedoso y dinámico, no depender de gráficas de barras, y siempre tema claro.
 
 ## Evidence on Hand
-Datos reales cargados y verificados (mf_base 3.594 filas, uc_base 740, beneficiados 697, estudiantes 1.684, metas). No hay logos ni fotografías del programa; no inventar testimonios, cifras ni imágenes de terceros.
+Datos reales cargados y verificados (mf_base 3.594 filas, uc_base 740, beneficiados 697, estudiantes 1.684, metas). Hay logos institucionales (ver Brand Commitments); no hay fotografías del programa; no inventar testimonios, cifras ni imágenes de terceros.
 
 ## Product Principles
 1. La cifra manda: el total invertido y su distribución se entienden antes que cualquier detalle.

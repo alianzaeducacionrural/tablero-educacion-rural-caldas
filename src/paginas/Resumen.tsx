@@ -1,15 +1,16 @@
 import { useMemo } from 'react'
-import { BarraFiltros } from '../components/BarraFiltros'
+import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
 import { Grafico } from '../components/Grafico'
-import { Contenido, Cifra, MapaCaldas, Marca, PlacaCabecera, Posiciones, Seccion } from '../components/Lamina'
-import { agrupar, sumar, unicos } from '../lib/agregar'
+import { Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAnios } from '../components/Lamina'
+import { RankingBarras } from '../components/Ranking'
+import { agrupar, alfa, sumar, unicos } from '../lib/agregar'
+import { useAngosto } from '../lib/angosto'
 import { PLACAS, colorAportante, colorPrograma } from '../lib/colores'
 import { alternar } from '../lib/filtros'
 import { cop, num, pct } from '../lib/formato'
-import { aclarar, dona, sunburst, type Nodo } from '../lib/graficos'
+import { aclarar, columnas, pastel, sunburst, type Nodo } from '../lib/graficos'
 import { PROGRAMAS, type Programa } from '../lib/tipos'
-import { useAngosto } from '../lib/angosto'
-import { descripcionFiltros, pasa, useTablero } from '../lib/usarFiltrado'
+import { pasa, useTablero } from '../lib/usarFiltrado'
 
 const placa = PLACAS.resumen
 
@@ -33,8 +34,9 @@ export function Resumen() {
 
   const porMunicipio = useMemo(() => agrupar(baseMunicipios, (x) => x.municipio, (x) => x.valor), [baseMunicipios])
   const datosMapa = useMemo(() => porMunicipio.map((p) => ({ name: p.nombre, value: p.valor })), [porMunicipio])
-  const seleccion = f.municipios
   const alMunicipio = (n: string) => f.setMunicipios(alternar(f.municipios, n))
+  const maxMuni = porMunicipio[0]?.valor || 1
+  const rankingMuni = porMunicipio.map((p) => ({ nombre: p.nombre, valor: p.valor, color: placa.escala[Math.min(6, Math.floor(Math.sqrt(p.valor / maxMuni) * 7))] }))
 
   // Aportante → programa → proyecto/proceso
   const arbol = useMemo<Nodo[]>(() => {
@@ -58,7 +60,6 @@ export function Resumen() {
       })),
     }))
   }, [base])
-
   const tablaFlujo = useMemo(() => {
     const m = new Map<string, { aportante: string; programa: string; grupo: string; valor: number }>()
     base.forEach((x) => {
@@ -69,75 +70,78 @@ export function Resumen() {
     })
     return [...m.values()].sort((a, b) => b.valor - a.valor)
   }, [base])
-
   const opcionSol = useMemo(() => sunburst({ arbol, fmt: cop, centro: cop(total), sub: 'invertidos', compacto: angosto }), [arbol, total, angosto])
 
+  // Comparación entre años
   const porAnio = useMemo(
     () =>
-      anios.map((a) => {
-        const mf = sumar(baseAnios.filter((x) => x.programa === 'mf' && x.anio === a), (x) => x.valor)
-        const uc = sumar(baseAnios.filter((x) => x.programa === 'uc' && x.anio === a), (x) => x.valor)
-        return { anio: a, mf, uc, total: mf + uc }
-      }),
+      anios.map((a) => ({
+        anio: a,
+        mf: sumar(baseAnios.filter((x) => x.programa === 'mf' && x.anio === a), (x) => x.valor),
+        uc: sumar(baseAnios.filter((x) => x.programa === 'uc' && x.anio === a), (x) => x.valor),
+      })),
     [anios, baseAnios],
   )
-  const totalAnios = sumar(porAnio, (x) => x.total)
+  const seriesAnio = [
+    { nombre: 'Modelos Educativos Flexibles', color: colorPrograma('mf') },
+    { nombre: 'Universidad en el Campo', color: colorPrograma('uc') },
+  ]
+  const opcionAnios = useMemo(
+    () => columnas({ categorias: porAnio.map((a) => String(a.anio)), series: seriesAnio.map((s, i) => ({ ...s, datos: porAnio.map((a) => (i === 0 ? a.mf : a.uc)) })), fmt: cop, seleccion: f.anios.map(String) }),
+    [porAnio, f.anios], // eslint-disable-line react-hooks/exhaustive-deps
+  )
+  const totalMf = sumar(base.filter((x) => x.programa === 'mf'), (x) => x.valor)
+  const opcionPastel = useMemo(
+    () => pastel({ partes: [{ nombre: 'Modelos Educativos Flexibles', valor: totalMf, color: colorPrograma('mf') }, { nombre: 'Universidad en el Campo', valor: total - totalMf, color: colorPrograma('uc') }], fmt: cop }),
+    [totalMf, total],
+  )
 
-  const maxMuni = porMunicipio[0]?.valor || 1
-  const top8 = porMunicipio.slice(0, 8).map((p) => ({ nombre: p.nombre, valor: p.valor, color: placa.escala[Math.min(6, Math.floor(Math.sqrt(p.valor / maxMuni) * 7))] }))
+  const municipiosDisp = useMemo(() => [...new Set([...datos.base.map((x) => x.municipio), ...datos.beneficiados.map((b) => b.municipio)])].sort(alfa), [datos])
+  const grupos: GrupoFiltro[] = [{ clave: 'municipio', titulo: 'Municipio', opciones: municipiosDisp, valor: f.municipios, onChange: f.setMunicipios, abierto: true }]
+  const anioFiltro = { anios, valor: f.anios, onChange: f.setAnios }
+  const etiquetas = etiquetasDe(anioFiltro, grupos)
 
   return (
     <>
       <PlacaCabecera placa={placa} titulo="El recurso, sobre el mapa" texto="Cuánto invirtió la Gobernación de Caldas en educación rural, quién lo aportó y a qué municipios llegó. Toca el mapa para filtrar todo lo demás." />
 
-      <Contenido>
-        <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14">
-          <div className="space-y-7">
-            <Cifra tam="xl" valor={cop(total)} etiqueta={`invertidos en educación rural${rango ? `, ${rango}` : ''}`} />
-            <p className="text-xl leading-relaxed text-ink2 sm:text-2xl">
-              El recurso llegó a <Marca>{num(unicos(base, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(instituciones)} instituciones</Marca>. Beneficiaron a <Marca>{num(sumar(beneficiados, (b) => b.beneficiados))} estudiantes</Marca> y financiaron a <Marca>{num(estudiantes.length)} estudiantes técnicos</Marca>
+      <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} activos={etiquetas.length} onLimpiar={f.limpiar} />} etiquetas={etiquetas} onLimpiar={f.limpiar}>
+        <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+          <div className="space-y-6">
+            <Cifra tam="md" valor={cop(total)} etiqueta={`invertidos en educación rural${rango ? `, ${rango}` : ''}`} />
+            <p className="text-lg leading-relaxed text-ink2">
+              Llegó a <Marca>{num(unicos(base, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(instituciones)} instituciones</Marca>. Beneficiaron a <Marca>{num(sumar(beneficiados, (b) => b.beneficiados))} estudiantes</Marca> y financiaron a <Marca>{num(estudiantes.length)} estudiantes técnicos</Marca>
               {estudiantes.length > 0 && <>, de los que {pct(estudiantes.filter((e) => /^graduado$/i.test(e.estado)).length / estudiantes.length)} ya se graduó</>}.
             </p>
-
             <div>
               <div className="flex h-5 overflow-hidden rounded-full ring-2 ring-white" role="img" aria-label={`Departamento de Caldas ${pct(total ? depto / total : 0)}, Comité de Cafeteros ${pct(total ? comite / total : 0)}`}>
                 <div style={{ width: `${total ? (depto / total) * 100 : 0}%`, background: colorAportante('Depto. de Caldas') }} />
                 <div style={{ width: `${total ? (comite / total) * 100 : 0}%`, background: colorAportante('Comité de Cafeteros') }} />
               </div>
-              <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2">
-                <div className="flex items-center gap-2.5">
-                  <span className="size-3.5 rounded-full" style={{ background: colorAportante('Depto. de Caldas') }} />
-                  <span className="font-bold" style={{ color: 'var(--ink)' }}>
-                    Departamento de Caldas
-                  </span>
-                  <span className="cota">
-                    {total ? pct(depto / total) : '—'} · {cop(depto)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <span className="size-3.5 rounded-full" style={{ background: colorAportante('Comité de Cafeteros') }} />
-                  <span className="font-bold" style={{ color: 'var(--ink)' }}>
-                    Comité de Cafeteros
-                  </span>
-                  <span className="cota">
-                    {total ? pct(comite / total) : '—'} · {cop(comite)}
-                  </span>
-                </div>
+              <div className="mt-3 space-y-2">
+                {[
+                  { n: 'Departamento de Caldas', c: colorAportante('Depto. de Caldas'), v: depto },
+                  { n: 'Comité de Cafeteros', c: colorAportante('Comité de Cafeteros'), v: comite },
+                ].map((a) => (
+                  <div key={a.n} className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
+                    <span className="size-3.5 rounded-full" style={{ background: a.c }} />
+                    <span className="font-bold" style={{ color: 'var(--ink)' }}>
+                      {a.n}
+                    </span>
+                    <span className="cota text-sm">
+                      {total ? pct(a.v / total) : '—'} · {cop(a.v)}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
-
-            <div>
-              <p className="mb-2 text-sm font-semibold text-ink2">Mostrando: {descripcionFiltros(f)}</p>
-              <BarraFiltros />
-            </div>
           </div>
-
-          <MapaCaldas datos={datosMapa} placa={placa} fmt={cop} seleccion={seleccion} alClic={alMunicipio} etiqueta="Mapa de Caldas coloreado por inversión de cada municipio" />
+          <MapaCaldas datos={datosMapa} placa={placa} fmt={cop} seleccion={f.municipios} alClic={alMunicipio} etiqueta="Mapa de Caldas coloreado por inversión de cada municipio" />
         </div>
 
         <Seccion
           titulo="¿De dónde viene y a dónde va?"
-          nota="Del aportante al programa y al proyecto o proceso. Pasa el cursor sobre un tramo para ver su valor."
+          nota="Del aportante al programa y al proyecto o proceso."
           tono="lavado"
           tabla={{
             archivo: 'distribucion-del-recurso',
@@ -150,73 +154,32 @@ export function Resumen() {
             filas: tablaFlujo,
           }}
         >
-          <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-            <Grafico etiqueta="Distribución del recurso por aportante, programa y proyecto" alto={angosto ? 380 : 620} opcion={opcionSol} />
-            <div>
-              <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
-                Los que más recibieron
-              </h3>
-              <p className="mb-3 text-sm text-ink2">Toca un municipio para filtrar.</p>
-              <Posiciones items={top8} fmt={cop} onClic={alMunicipio} seleccion={seleccion} />
-            </div>
-          </div>
+          <Grafico etiqueta="Distribución del recurso por aportante, programa y proyecto" alto={angosto ? 380 : 600} opcion={opcionSol} />
+        </Seccion>
+
+        <Seccion titulo="Los municipios que más recibieron" nota="Toca uno para filtrar. La barra muestra su parte de la inversión." tabla={{ archivo: 'inversion-por-municipio', columnas: [{ clave: 'nombre', titulo: 'Municipio' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' }], filas: porMunicipio.map((p) => ({ nombre: p.nombre, valor: p.valor })) }}>
+          <RankingBarras items={rankingMuni} fmtValor={cop} colorBase={placa.main} seleccion={f.municipios} onClic={alMunicipio} limite={12} />
         </Seccion>
 
         <Seccion
           titulo="Año por año"
-          nota="Cada anillo reparte la inversión del año entre los dos programas. Toca un año para filtrar."
-          tabla={{
-            archivo: 'inversion-por-anio',
-            columnas: [
-              { clave: 'anio', titulo: 'Año' },
-              { clave: 'mf', titulo: 'Modelos Flexibles', tipo: 'moneda' },
-              { clave: 'uc', titulo: 'Universidad en el Campo', tipo: 'moneda' },
-              { clave: 'total', titulo: 'Total', tipo: 'moneda' },
-            ],
-            filas: porAnio.map((a) => ({ anio: String(a.anio), mf: a.mf, uc: a.uc, total: a.total })),
-          }}
-          acciones={
-            <div className="hidden items-center gap-4 text-sm font-semibold sm:flex">
-              {(['mf', 'uc'] as Programa[]).map((p) => (
-                <span key={p} className="flex items-center gap-2">
-                  <span className="size-3.5 rounded-full" style={{ background: colorPrograma(p) }} />
-                  {PROGRAMAS[p].nombre}
-                </span>
-              ))}
-            </div>
-          }
+          nota="Cómo cambió la inversión de un año al siguiente. Toca un año para filtrar."
+          tabla={{ archivo: 'inversion-por-anio', columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'mf', titulo: 'Modelos Educativos Flexibles', tipo: 'moneda' }, { clave: 'uc', titulo: 'Universidad en el Campo', tipo: 'moneda' }], filas: porAnio.map((a) => ({ anio: String(a.anio), mf: a.mf, uc: a.uc })) }}
         >
-          <div className="grid gap-6 sm:grid-cols-3">
-            {porAnio.map((a) => {
-              const on = f.anios.includes(a.anio)
-              const hay = f.anios.length > 0
-              return (
-                <button key={a.anio} type="button" aria-pressed={on} onClick={() => f.setAnios(alternar(f.anios, a.anio))} className={`rounded-3xl bg-white p-4 text-left transition-all ${on ? 'ring-4 ring-main' : 'ring-1 ring-line hover:ring-main'} ${hay && !on ? 'opacity-50' : ''}`}>
-                  <div className="flex items-baseline justify-between">
-                    <span className="display text-4xl" style={{ color: 'var(--ink)' }}>
-                      {a.anio}
-                    </span>
-                    <span className="cota text-sm font-semibold text-ink2">{cop(a.total)}</span>
-                  </div>
-                  <Grafico
-                    etiqueta={`Inversión ${a.anio} por programa`}
-                    alto={230}
-                    opcion={dona({
-                      partes: [
-                        { nombre: 'Modelos Flexibles', valor: a.mf, color: colorPrograma('mf') },
-                        { nombre: 'Universidad en el Campo', valor: a.uc, color: colorPrograma('uc') },
-                      ],
-                      centro: totalAnios ? pct(a.total / totalAnios, 0) : '—',
-                      sub: 'del total',
-                      fmt: cop,
-                    })}
-                  />
-                </button>
-              )
-            })}
+          <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+            <div className="space-y-5">
+              <Grafico etiqueta="Inversión por año y programa" alto={340} alClic={(n) => f.setAnios(alternar(f.anios, Number(n)))} opcion={opcionAnios} />
+              <TablaAnios filas={porAnio.map((a) => ({ anio: a.anio, valores: [a.mf, a.uc] }))} series={seriesAnio} fmt={cop} nota="El año más reciente puede estar incompleto si su vigencia sigue en curso." />
+            </div>
+            <div>
+              <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
+                Reparto por programa
+              </h3>
+              <Grafico etiqueta="Reparto de la inversión por programa" alto={320} opcion={opcionPastel} />
+            </div>
           </div>
         </Seccion>
-      </Contenido>
+      </ConFiltros>
     </>
   )
 }

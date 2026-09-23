@@ -1,7 +1,7 @@
 # Educación rural en Caldas
 
 Tablero web de la inversión de la Gobernación de Caldas (Secretaría de Educación) en educación rural, con el Comité de Cafeteros.
-Reemplaza los dos informes de Power BI (Modelos Flexibles y Universidad en el Campo) por un solo enlace.
+Reemplaza los dos informes de Power BI (Modelos Educativos Flexibles y Universidad en el Campo) por un solo enlace.
 
 ```
 Google Sheet (privado)  ←→  Apps Script Web App (clasp)  ──►  GitHub Pages (React + Vite)
@@ -10,7 +10,7 @@ Google Sheet (privado)  ←→  Apps Script Web App (clasp)  ──►  GitHub P
 ```
 
 ## Páginas
-Resumen · Modelos Flexibles · Universidad en el Campo · Estudiantes · Cobertura · Cumplimiento · Administración (`/#/admin`).
+Resumen · Modelos Educativos Flexibles · Universidad en el Campo · Estudiantes · Cobertura · Cumplimiento · Administración (`/#/admin`).
 Cada pestaña tiene su propio estilo de color; el sistema visual está en [DESIGN.md](DESIGN.md). Solo tema claro.
 
 ## Desarrollo

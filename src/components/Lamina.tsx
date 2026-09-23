@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import caldas from '../data/caldas.json'
 import { TINTA, type Placa } from '../lib/colores'
 import { inicioBanda, mapa } from '../lib/graficos'
+import { pct } from '../lib/formato'
 import { Grafico } from './Grafico'
 import { Icono } from './Icono'
 import { Tabla, type TablaDatos } from './Tabla'
@@ -151,10 +152,10 @@ export function LeyendaCotas({ placa, max, fmt, banda, onBanda }: { placa: Placa
   )
 }
 
-export function MapaCaldas({ datos, placa, fmt, seleccion, alClic, sinDatos = ['Manizales'], etiqueta }: { datos: { name: string; value: number }[]; placa: Placa; fmt: (n: number) => string; seleccion: string[]; alClic: (nombre: string) => void; sinDatos?: string[]; etiqueta: string }) {
+export function MapaCaldas({ datos, placa, fmt, seleccion, alClic, sinDatos = ['Manizales'], etiqueta, extra }: { datos: { name: string; value: number }[]; placa: Placa; fmt: (n: number) => string; seleccion: string[]; alClic: (nombre: string) => void; sinDatos?: string[]; etiqueta: string; extra?: Record<string, string> }) {
   const [banda, setBanda] = useState<number | null>(null)
   const max = Math.max(1, ...datos.map((d) => d.value))
-  const opcion = useMemo(() => mapa({ datos, placa, fmt, seleccion, sinDatos, banda, max }), [datos, placa, fmt, seleccion, sinDatos, banda, max])
+  const opcion = useMemo(() => mapa({ datos, placa, fmt, seleccion, sinDatos, banda, max, extra }), [datos, placa, fmt, seleccion, sinDatos, banda, max, extra])
   return (
     <div>
       <div className="w-full" style={{ aspectRatio: '1.22' }}>
@@ -166,29 +167,142 @@ export function MapaCaldas({ datos, placa, fmt, seleccion, alClic, sinDatos = ['
   )
 }
 
-/* ------------------------------------------------------------------ vértices geodésicos (un valor por año) */
+/* ------------------------------------------------------------------ avance y comparación entre años */
 
-export function Vertices({ items, seleccion, onToggle }: { items: { clave: string; etiqueta: string; valor: string; detalle?: string }[]; seleccion: string[]; onToggle: (clave: string) => void }) {
-  const hay = seleccion.length > 0
+/** Barra de avance: lo ejecutado frente a la meta. Siempre con icono y texto, nunca solo color. */
+export function Progreso({ etiqueta, valor, meta, fmt, color }: { etiqueta: string; valor: number; meta: number; fmt: (n: number) => string; color: string }) {
+  const r = meta > 0 ? valor / meta : 0
+  const icono = r > 1.0001 ? 'arriba' : r >= 0.9999 ? 'check' : 'encurso'
   return (
-    <div className="flex flex-wrap gap-x-8 gap-y-5">
-      {items.map((it) => {
-        const on = seleccion.includes(it.clave)
-        return (
-          <button key={it.clave} type="button" aria-pressed={on} onClick={() => onToggle(it.clave)} className={`group flex items-center gap-3 text-left transition-opacity ${hay && !on ? 'opacity-45' : ''}`}>
-            <span className={`grid size-14 place-items-center rounded-2xl transition-colors ${on ? 'bg-main text-on' : 'bg-white text-accentink ring-1 ring-line group-hover:ring-main'}`}>
-              <Icono n="vertice" size={28} />
-            </span>
-            <span>
-              <span className="cota block text-sm font-semibold text-ink2">{it.etiqueta}</span>
-              <span className="display tabular block text-3xl" style={{ color: 'var(--ink)' }}>
-                {it.valor}
-              </span>
-              {it.detalle && <span className="block text-xs font-medium text-ink2">{it.detalle}</span>}
-            </span>
-          </button>
-        )
-      })}
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-bold" style={{ color: 'var(--ink)' }}>
+          {etiqueta}
+        </span>
+        <span className="cota inline-flex shrink-0 items-center gap-1 text-sm font-semibold">
+          <Icono n={icono} size={14} />
+          {pct(r, 1)}
+        </span>
+      </div>
+      <div role="progressbar" aria-label={`Avance de ${etiqueta}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round(r * 100))} className="mt-1.5 h-3.5 overflow-hidden rounded-full bg-white ring-1 ring-line">
+        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, r * 100)}%`, background: color }} />
+      </div>
+      <p className="cota mt-1 text-xs text-ink2">
+        {fmt(valor)} de {fmt(meta)}
+      </p>
+    </div>
+  )
+}
+
+/** Comparación año a año con el cambio frente al año anterior. */
+export function TablaAnios({ filas, series, fmt, nota }: { filas: { anio: number; valores: number[] }[]; series: { nombre: string; color: string }[]; fmt: (n: number) => string; nota?: string }) {
+  const ordenadas = [...filas].sort((a, b) => a.anio - b.anio)
+  const total = (f: { valores: number[] }) => f.valores.reduce((s, v) => s + v, 0)
+  return (
+    <div>
+      <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th scope="col" className="border-b-2 border-main px-3 py-2.5 text-left font-bold">
+                Año
+              </th>
+              {series.map((s) => (
+                <th key={s.nombre} scope="col" className="border-b-2 border-main px-3 py-2.5 text-right font-bold">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="size-3 rounded-full" style={{ background: s.color }} />
+                    {s.nombre}
+                  </span>
+                </th>
+              ))}
+              {series.length > 1 && (
+                <th scope="col" className="border-b-2 border-main px-3 py-2.5 text-right font-bold">
+                  Total
+                </th>
+              )}
+              <th scope="col" className="border-b-2 border-main px-3 py-2.5 text-right font-bold">
+                Cambio
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {ordenadas.map((f, i) => {
+              const t = total(f)
+              const antes = i > 0 ? total(ordenadas[i - 1]) : 0
+              const delta = i > 0 && antes > 0 ? (t - antes) / antes : null
+              return (
+                <tr key={f.anio} className="border-b border-line last:border-0">
+                  <td className="display px-3 py-2.5 text-xl" style={{ color: 'var(--ink)' }}>
+                    {f.anio}
+                  </td>
+                  {f.valores.map((v, k) => (
+                    <td key={k} className="cota px-3 py-2.5 text-right">
+                      {fmt(v)}
+                    </td>
+                  ))}
+                  {series.length > 1 && <td className="cota px-3 py-2.5 text-right font-bold">{fmt(t)}</td>}
+                  <td className="px-3 py-2.5 text-right">
+                    {delta === null ? (
+                      <span className="text-muted">—</span>
+                    ) : (
+                      <span className={`cota inline-flex items-center gap-1 font-bold ${delta >= 0 ? 'text-good' : 'text-bad'}`}>
+                        <Icono n={delta >= 0 ? 'arriba' : 'abajo'} size={13} />
+                        {pct(Math.abs(delta), 1)}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      {nota && <p className="mt-2 text-xs text-ink2">{nota}</p>}
+    </div>
+  )
+}
+
+/** Comparación año a año con las dos cifras (valor y cantidad) y su cambio frente al año anterior. */
+export function TablaAniosDual({ filas, fmtValor, fmtCantidad, nota }: { filas: { anio: number; valor: number; cantidad: number }[]; fmtValor: (n: number) => string; fmtCantidad: (n: number) => string; nota?: string }) {
+  const o = [...filas].sort((a, b) => a.anio - b.anio)
+  const cambio = (actual: number, antes: number | undefined) => {
+    if (antes === undefined || antes <= 0) return <span className="text-muted">—</span>
+    const d = (actual - antes) / antes
+    return (
+      <span className={`cota inline-flex items-center gap-1 font-bold ${d >= 0 ? 'text-good' : 'text-bad'}`}>
+        <Icono n={d >= 0 ? 'arriba' : 'abajo'} size={13} />
+        {pct(Math.abs(d), 1)}
+      </span>
+    )
+  }
+  const th = 'border-b-2 border-main px-3 py-2.5 font-bold'
+  return (
+    <div>
+      <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th scope="col" className={`${th} text-left`}>Año</th>
+              <th scope="col" className={`${th} text-right`}>Valor</th>
+              <th scope="col" className={`${th} text-right`}>Cambio</th>
+              <th scope="col" className={`${th} text-right`}>Cantidad</th>
+              <th scope="col" className={`${th} text-right`}>Cambio</th>
+            </tr>
+          </thead>
+          <tbody>
+            {o.map((f, i) => (
+              <tr key={f.anio} className="border-b border-line last:border-0">
+                <td className="display px-3 py-2.5 text-xl" style={{ color: 'var(--ink)' }}>{f.anio}</td>
+                <td className="cota px-3 py-2.5 text-right font-semibold">{fmtValor(f.valor)}</td>
+                <td className="px-3 py-2.5 text-right">{cambio(f.valor, o[i - 1]?.valor)}</td>
+                <td className="cota px-3 py-2.5 text-right font-semibold">{fmtCantidad(f.cantidad)}</td>
+                <td className="px-3 py-2.5 text-right">{cambio(f.cantidad, o[i - 1]?.cantidad)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {nota && <p className="mt-2 text-xs text-ink2">{nota}</p>}
     </div>
   )
 }
@@ -231,13 +345,13 @@ interface CafetalProps {
 }
 
 const COLS = 12
-const PASO = 10
+const PASO = 9
 
 export function Cafetal({ cohortes, estados, colorDe, seleccionEstado, seleccionCohorte, alClicEstado, alClicCohorte }: CafetalProps) {
   const hayE = seleccionEstado.length > 0
   const hayC = seleccionCohorte.length > 0
   return (
-    <div className="flex flex-wrap items-end gap-x-7 gap-y-8">
+    <div className="flex flex-wrap items-end gap-x-5 gap-y-8">
       {cohortes.map((co) => {
         const total = estados.reduce((s, e) => s + (co.conteos[e] ?? 0), 0)
         const filas = Math.ceil(total / COLS)
@@ -259,7 +373,7 @@ export function Cafetal({ cohortes, estados, colorDe, seleccionEstado, seleccion
                       const j = idx0 + k
                       const cx = (j % COLS) * PASO + PASO / 2
                       const cy = alto - (Math.floor(j / COLS) * PASO + PASO / 2) - 2
-                      return <circle key={k} cx={cx} cy={cy} r={3.7} fill={colorDe(e)} style={{ animation: `punto .5s cubic-bezier(.19,1,.22,1) ${Math.min(900, (j % 90) * 9 + Math.floor(j / COLS) * 6)}ms both`, transformOrigin: `${cx}px ${cy}px` }} />
+                      return <circle key={k} cx={cx} cy={cy} r={3.3} fill={colorDe(e)} style={{ animation: `punto .5s cubic-bezier(.19,1,.22,1) ${Math.min(900, (j % 90) * 9 + Math.floor(j / COLS) * 6)}ms both`, transformOrigin: `${cx}px ${cy}px` }} />
                     })}
                   </g>
                 )

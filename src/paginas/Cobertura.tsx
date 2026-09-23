@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react'
-import { BarraFiltros } from '../components/BarraFiltros'
+import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
 import { Grafico } from '../components/Grafico'
 import { Icono } from '../components/Icono'
-import { Cifra, Contenido, MapaCaldas, Marca, PlacaCabecera, Seccion, Vertices } from '../components/Lamina'
-import { agrupar, alfa, sumar, unicos } from '../lib/agregar'
+import { Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAnios } from '../components/Lamina'
+import { RankingBarras } from '../components/Ranking'
+import { alfa, sumar, unicos } from '../lib/agregar'
 import { PLACAS } from '../lib/colores'
 import { alternar } from '../lib/filtros'
 import { num } from '../lib/formato'
-import { aclarar, treemap, type Nodo } from '../lib/graficos'
-import { descripcionFiltros, pasa, useTablero } from '../lib/usarFiltrado'
+import { columnas } from '../lib/graficos'
+import { pasa, useTablero } from '../lib/usarFiltrado'
 
 const placa = PLACAS.cobertura
 
@@ -68,58 +69,68 @@ export function Cobertura() {
   const todoAbierto = () => setAbiertos(new Set(arbolTabla.flatMap((m) => [m.clave, ...m.hijos.map((i) => i.clave)])))
 
   const total = sumar(filas, (b) => b.beneficiados)
-  const datosMapa = useMemo(() => agrupar(filasTodosMuni, (b) => b.municipio, (b) => b.beneficiados).map((p) => ({ name: p.nombre, value: p.valor })), [filasTodosMuni])
-  const anios = [...new Set(filasTodosAnios.map((b) => b.anio))].sort()
-  const porAnio = anios.map((a) => sumar(filasTodosAnios.filter((b) => b.anio === a), (b) => b.beneficiados))
 
-  // Treemap: municipio → institución → sede
-  const arbol = useMemo<Nodo[]>(
-    () =>
-      arbolTabla
-        .slice()
-        .sort((a, b) => b.total - a.total)
-        .map((m, _i, todos) => {
-          const color = placa.escala[Math.min(6, Math.floor(Math.sqrt(m.total / (todos[0].total || 1)) * 7))]
-          return {
-            name: m.nombre,
-            color,
-            children: m.hijos.slice().sort((a, b) => b.total - a.total).map((ins, j) => ({
-              name: ins.nombre,
-              color: aclarar(color, Math.min(0.5, 0.08 + j * 0.05)),
-              children: ins.hijos.map((s, k) => ({ name: s.nombre, value: s.total, color: aclarar(color, Math.min(0.7, 0.28 + k * 0.05)) })),
-            })),
-          }
-        }),
-    [arbolTabla],
-  )
-  const opcionArbol = useMemo(() => treemap({ arbol, fmt: num }), [arbol])
+  // Rankings: beneficiados (barra y cifra completa) y número de sedes a la vista
+  const ranking = (base: typeof filas, clave: (b: (typeof filas)[number]) => string) => {
+    const m = new Map<string, { valor: number; sedes: Set<string> }>()
+    base.forEach((b) => {
+      const e = m.get(clave(b)) ?? { valor: 0, sedes: new Set<string>() }
+      e.valor += b.beneficiados
+      e.sedes.add(`${b.municipio}|${b.institucion}|${b.sede}`)
+      m.set(clave(b), e)
+    })
+    return [...m.entries()].map(([nombre, e]) => ({ nombre, valor: e.valor, cantidad: e.sedes.size })).sort((a, b) => b.valor - a.valor || alfa(a.nombre, b.nombre))
+  }
+  const porMuni = useMemo(() => ranking(filasTodosMuni, (b) => b.municipio), [filasTodosMuni]) // eslint-disable-line react-hooks/exhaustive-deps
+  const repetidos = useMemo(() => {
+    const m = new Map<string, Set<string>>()
+    filas.forEach((b) => m.set(b.institucion, (m.get(b.institucion) ?? new Set()).add(b.municipio)))
+    return new Set([...m].filter(([, s]) => s.size > 1).map(([n]) => n))
+  }, [filas])
+  const porInst = useMemo(() => ranking(filas, (b) => (repetidos.has(b.institucion) ? `${b.institucion} (${b.municipio})` : b.institucion)), [filas, repetidos]) // eslint-disable-line react-hooks/exhaustive-deps
+  const datosMapa = useMemo(() => porMuni.map((p) => ({ name: p.nombre, value: p.valor })), [porMuni])
+  const extraMapa = useMemo(() => Object.fromEntries(porMuni.map((p) => [p.nombre, `Sedes: ${num(p.cantidad)}`])), [porMuni])
+
+  const anios = useMemo(() => [...new Set(datos.beneficiados.map((b) => b.anio))].filter(Boolean).sort(), [datos])
+  const porAnio = anios.map((a) => sumar(filasTodosAnios.filter((b) => b.anio === a), (b) => b.beneficiados))
+  const opcionAnios = useMemo(() => columnas({ categorias: anios.map(String), series: [{ nombre: 'Beneficiados', color: placa.main, datos: porAnio }], fmt: num, seleccion: f.anios.map(String) }), [anios, porAnio, f.anios]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const municipiosDisp = useMemo(() => [...new Set(datos.beneficiados.map((b) => b.municipio))].sort(alfa), [datos])
+  const grupos: GrupoFiltro[] = [{ clave: 'municipio', titulo: 'Municipio', opciones: municipiosDisp, valor: f.municipios, onChange: f.setMunicipios, abierto: true }]
+  const anioFiltro = { anios, valor: f.anios, onChange: f.setAnios }
+  const etiquetas = etiquetasDe(anioFiltro, grupos)
+  const tablaPares = (col: string, ps: { nombre: string; valor: number; cantidad: number }[], archivo: string) => ({ archivo, columnas: [{ clave: 'nombre', titulo: col }, { clave: 'valor', titulo: 'Beneficiados', tipo: 'numero' as const }, { clave: 'cantidad', titulo: 'Sedes', tipo: 'numero' as const }], filas: ps })
 
   return (
     <>
-      <PlacaCabecera placa={placa} titulo="Hasta dónde llega" texto="Estudiantes beneficiados por Modelos Flexibles, municipio por municipio, hasta cada sede. Es la suma de los años elegidos: quien se atendió en varios años puede contarse más de una vez." />
+      <PlacaCabecera placa={placa} titulo="Hasta dónde llega" texto="Estudiantes beneficiados por Modelos Educativos Flexibles, municipio por municipio, hasta cada sede. Es la suma de los años elegidos: quien se atendió en varios años puede contarse más de una vez." />
 
-      <Contenido>
-        <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-14">
-          <MapaCaldas datos={datosMapa} placa={placa} fmt={num} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta="Estudiantes beneficiados por municipio" />
-          <div className="space-y-7">
-            <Cifra tam="xl" valor={num(total)} etiqueta="estudiantes beneficiados" />
-            <p className="text-xl leading-relaxed text-ink2">
+      <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} activos={etiquetas.length} onLimpiar={f.limpiar} />} etiquetas={etiquetas} onLimpiar={f.limpiar}>
+        <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
+          <MapaCaldas datos={datosMapa} extra={extraMapa} placa={placa} fmt={num} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta="Estudiantes beneficiados por municipio" />
+          <div className="space-y-6">
+            <Cifra tam="lg" valor={num(total)} etiqueta="estudiantes beneficiados" />
+            <p className="text-lg leading-relaxed text-ink2">
               En <Marca>{num(unicos(filas, (b) => b.municipio).size)} municipios</Marca>, <Marca>{num(unicos(filas, (b) => `${b.municipio}|${b.institucion}`).size)} instituciones</Marca> y <Marca>{num(unicos(filas, (b) => `${b.municipio}|${b.institucion}|${b.sede}`).size)} sedes</Marca>.
             </p>
-            <div>
-              <p className="mb-3 text-sm font-semibold text-ink2">Por año. Toca uno para filtrar.</p>
-              <Vertices items={anios.map((a, i) => ({ clave: String(a), etiqueta: String(a), valor: num(porAnio[i]) }))} seleccion={f.anios.map(String)} onToggle={(c) => f.setAnios(alternar(f.anios, Number(c)))} />
-            </div>
-            <div>
-              <p className="mb-2 text-sm font-semibold text-ink2">Mostrando: {descripcionFiltros(f)}</p>
-              <BarraFiltros />
-            </div>
           </div>
         </div>
 
-        <Seccion titulo="Municipio, institución y sede" nota="El tamaño de cada cuadro son sus estudiantes. Toca un municipio para entrar a sus instituciones, y una institución para ver sus sedes." tono="lavado">
-          <Grafico etiqueta="Estudiantes beneficiados por municipio, institución y sede" alto={560} opcion={opcionArbol} />
+        <Seccion titulo="Año por año" nota="Beneficiados de cada año y su cambio frente al anterior. Toca un año para filtrar." tono="lavado" tabla={{ archivo: 'beneficiados-por-anio', columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'n', titulo: 'Beneficiados', tipo: 'numero' }], filas: anios.map((a, i) => ({ anio: String(a), n: porAnio[i] })) }}>
+          <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
+            <Grafico etiqueta="Estudiantes beneficiados por año" alto={320} alClic={(n) => f.setAnios(alternar(f.anios, Number(n)))} opcion={opcionAnios} />
+            <TablaAnios filas={anios.map((a, i) => ({ anio: a, valores: [porAnio[i]] }))} series={[{ nombre: 'Beneficiados', color: placa.main }]} fmt={num} nota="El año más reciente puede estar incompleto si su vigencia sigue en curso." />
+          </div>
         </Seccion>
+
+        <div className="grid items-start gap-12 2xl:grid-cols-2">
+          <Seccion titulo="Municipios" nota="Beneficiados y sedes atendidas. Toca uno para filtrar." tabla={tablaPares('Municipio', porMuni, 'beneficiados-por-municipio')}>
+            <RankingBarras items={porMuni} fmtValor={num} fmtCantidad={(n) => `${num(n)} sedes`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} />
+          </Seccion>
+          <Seccion titulo="Instituciones" nota="Beneficiados y sedes de cada institución." tabla={tablaPares('Institución', porInst, 'beneficiados-por-institucion')}>
+            <RankingBarras items={porInst} fmtValor={num} fmtCantidad={(n) => `${num(n)} sedes`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} />
+          </Seccion>
+        </div>
 
         <Seccion
           titulo="La lista completa"
@@ -174,7 +185,7 @@ export function Cobertura() {
             </table>
           </div>
         </Seccion>
-      </Contenido>
+      </ConFiltros>
     </>
   )
 }

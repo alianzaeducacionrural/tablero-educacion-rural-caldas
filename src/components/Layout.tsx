@@ -3,9 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useDatos } from '../lib/datos'
 import { ORDEN_PLACAS, PLACAS, placaDeRuta } from '../lib/colores'
 import logoSed from '../assets/logos/gobierno-caldas-sed.webp'
-import logoComiteBlanco from '../assets/logos/comite-blanco.webp'
 import logoComiteNegro from '../assets/logos/comite-negro.webp'
-import logoComiteVino from '../assets/logos/comite-vinotinto.webp'
 import { Icono } from './Icono'
 import { Aviso, Cargando, SiluetaCaldas } from './Lamina'
 
@@ -18,7 +16,6 @@ export function Layout() {
   const { estado, datos, error, actualizando, refrescar } = useDatos()
   const { pathname } = useLocation()
   const placa = placaDeRuta(pathname)
-  const claro = placa.on.toLowerCase() === '#ffffff'
 
   // Cada pestaña es una lámina con su propia familia de color: se aplica a toda la página, incluido el fondo.
   useEffect(() => {
@@ -35,7 +32,13 @@ export function Layout() {
   return (
     <div className="lamina min-h-screen">
       <header className="bg-white">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-x-8 gap-y-3 px-5 py-3.5">
+        <div className="border-b border-line">
+          <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-6 px-5 py-3">
+            <img src={logoSed} alt="Gobierno de Caldas, Secretaría de Educación" width={1100} height={129} className="h-9 w-auto sm:h-12" />
+            <img src={logoComiteNegro} alt="Comité de Cafeteros de Caldas, Federación Nacional de Cafeteros de Colombia" width={700} height={196} className="h-10 w-auto sm:h-14" />
+          </div>
+        </div>
+        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-x-8 gap-y-3 px-5 py-3.5">
           <NavLink to="/" className="flex items-center gap-3" aria-label="Educación rural en Caldas, ir al resumen">
             <SiluetaCaldas className="h-9 w-auto" trazo={placa.main} style={{ strokeWidth: 5 }} />
             <span>
@@ -45,17 +48,12 @@ export function Layout() {
               {datos && <span className="cota block text-xs text-ink2">Datos al {fechaCorta(datos.generado)}</span>}
             </span>
           </NavLink>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <img src={logoSed} alt="Gobierno de Caldas, Secretaría de Educación" width={1100} height={129} className="h-9 w-auto sm:h-11" />
-            <span className="hidden h-9 w-px bg-line sm:block" aria-hidden="true" />
-            <img src={logoComiteVino} alt="Comité de Cafeteros de Caldas, Federación Nacional de Cafeteros de Colombia" width={700} height={195} className="h-11 w-auto sm:h-14" />
-            <button type="button" onClick={() => void refrescar()} disabled={actualizando} className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-accentink ring-1 ring-line hover:bg-wash disabled:opacity-60">
-              <Icono n="refrescar" size={15} className={actualizando ? 'animate-spin' : ''} />
-              {actualizando ? 'Actualizando' : 'Actualizar'}
-            </button>
-          </div>
+          <button type="button" onClick={() => void refrescar()} disabled={actualizando} className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-accentink ring-1 ring-line hover:bg-wash disabled:opacity-60">
+            <Icono n="refrescar" size={15} className={actualizando ? 'animate-spin' : ''} />
+            {actualizando ? 'Actualizando' : 'Actualizar'}
+          </button>
         </div>
-        <nav aria-label="Láminas" className="mx-auto flex max-w-[1400px] gap-2 overflow-x-auto px-5 pb-3.5">
+        <nav aria-label="Láminas" className="mx-auto flex max-w-[1500px] gap-2 overflow-x-auto px-5 pb-3.5">
           {ORDEN_PLACAS.map((id) => {
             const p = PLACAS[id]
             return (
@@ -107,22 +105,17 @@ export function Layout() {
         )}
       </main>
 
-      <footer className="mt-6" style={{ background: placa.main, color: placa.on }}>
-        <div className="mx-auto grid max-w-[1400px] gap-6 px-5 py-9 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div>
-            <p className="display text-3xl">Educación rural en Caldas</p>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed" style={{ opacity: 0.92 }}>
-              Valores en pesos colombianos. Contornos municipales: DANE, vía geoBoundaries (CC BY 4.0). Cada visual tiene su tabla y se descarga en CSV.
-            </p>
-            <NavLink to="/admin" className="mt-3 inline-block text-sm font-bold underline underline-offset-4">
+      <footer className="mt-10 bg-white" style={{ borderTop: '6px solid var(--main)' }}>
+        <div className="mx-auto max-w-[1500px] px-5 py-8">
+          <div className="flex items-center justify-between gap-6">
+            <img src={logoSed} alt="Gobierno de Caldas, Secretaría de Educación" width={1100} height={129} className="h-9 w-auto sm:h-12" />
+            <img src={logoComiteNegro} alt="Comité de Cafeteros de Caldas, Federación Nacional de Cafeteros de Colombia" width={700} height={196} className="h-10 w-auto sm:h-14" />
+          </div>
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-2 border-t border-line pt-5 text-sm text-ink2">
+            <span>Educación rural en Caldas. Valores en pesos colombianos. Contornos municipales: DANE, vía geoBoundaries (CC BY 4.0). Cada visual tiene su tabla y se descarga en CSV.</span>
+            <NavLink to="/admin" className="font-bold text-accentink underline underline-offset-4">
               Administración
             </NavLink>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-7 gap-y-4">
-            <span className="rounded-2xl bg-white px-5 py-3">
-              <img src={logoSed} alt="Gobierno de Caldas, Secretaría de Educación" width={1100} height={129} className="h-9 w-auto" />
-            </span>
-            <img src={claro ? logoComiteBlanco : logoComiteNegro} alt="Comité de Cafeteros de Caldas, Federación Nacional de Cafeteros de Colombia" width={700} height={198} className="h-16 w-auto" />
           </div>
         </div>
       </footer>

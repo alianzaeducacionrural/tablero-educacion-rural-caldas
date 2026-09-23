@@ -2,14 +2,12 @@ import { useMemo, useState } from 'react'
 import { Segmentado } from '../components/controles'
 import { Grafico } from '../components/Grafico'
 import { Icono } from '../components/Icono'
-import { Aviso, Cifra, Contenido, Marca, PlacaCabecera, Seccion } from '../components/Lamina'
-import { Tabla } from '../components/Tabla'
+import { Aviso, Cifra, Contenido, Marca, PlacaCabecera, Posiciones, Progreso, Seccion } from '../components/Lamina'
 import { sumar } from '../lib/agregar'
 import { PLACAS, colorAportante } from '../lib/colores'
 import { cant, cop, num, pct } from '../lib/formato'
-import { aclarar, sunburst, type Nodo } from '../lib/graficos'
+import { apiladasH, dona, pastel } from '../lib/graficos'
 import { PROGRAMAS, type Meta, type Programa } from '../lib/tipos'
-import { useAngosto } from '../lib/angosto'
 import { useTablero } from '../lib/usarFiltrado'
 
 const placa = PLACAS.cumplimiento
@@ -25,7 +23,7 @@ function estadoMeta(m: Meta): Estado {
   return 'curso'
 }
 
-/** Barra de avance: siempre con icono y texto, nunca solo color. */
+/** Barra de avance de una actividad: siempre con icono y texto, nunca solo color. */
 function Avance({ m }: { m: Meta }) {
   const e = estadoMeta(m)
   if (e === 'sin') return <span className="text-muted">Sin meta</span>
@@ -45,7 +43,6 @@ function Avance({ m }: { m: Meta }) {
 
 export function Cumplimiento() {
   const { datos } = useTablero()
-  const angosto = useAngosto()
   const [programa, setPrograma] = useState<Programa>('mf')
   const [vigenciaSel, setVigenciaSel] = useState<number | null>(null)
   const cfg = PROGRAMAS[programa]
@@ -64,51 +61,30 @@ export function Cumplimiento() {
   const conMeta = metas.filter((m) => m.meta > 0)
   const valorMeta = sumar(metas, (m) => m.valorMeta)
   const valorEj = sumar(metas, (m) => m.valorEjecutado)
-  const cumplidas = conMeta.filter((m) => ['cumple', 'supera'].includes(estadoMeta(m))).length
-  const superadas = conMeta.filter((m) => estadoMeta(m) === 'supera').length
+  const cuentaEstado = (e: Estado) => metas.filter((m) => estadoMeta(m) === e).length
+  const cumplidas = cuentaEstado('cumple') + cuentaEstado('supera')
 
-  // Sunburst: proyecto/proceso → actividad, del tamaño de su valor meta y del color de su estado
-  const arbol = useMemo<Nodo[]>(
-    () =>
-      grupos.map(([g, filas], i) => ({
-        name: g,
-        color: placa.apoyo[i % placa.apoyo.length],
-        children: filas.filter((m) => m.valorMeta > 0).map((m) => ({ name: m.actividad, value: m.valorMeta, color: COLOR_ESTADO[estadoMeta(m)] })),
-      })).filter((n) => n.children.length),
-    [grupos],
-  )
-  const opcionSol = useMemo(() => sunburst({ arbol, fmt: cop, centro: cop(valorMeta), sub: 'valor de las metas', compacto: angosto, sinEtiquetas: true }), [arbol, valorMeta, angosto])
+  // Anillo: cuántas actividades hay en cada estado de avance
+  const partesEstado = (['supera', 'cumple', 'curso'] as Estado[]).map((e) => ({ nombre: TEXTO_ESTADO[e], valor: cuentaEstado(e), color: COLOR_ESTADO[e] })).filter((p) => p.valor > 0)
+  const opcionEstado = useMemo(() => dona({ partes: partesEstado, centro: num(conMeta.length), sub: 'actividades con meta', fmt: (n) => `${num(n)} actividades` }), [metas]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cofinanciación (Universidad en el Campo)
-  const arbolCofin = useMemo<Nodo[]>(() => {
-    const parte = (nombre: string, k: 'departamento' | 'comite'): Nodo => ({
-      name: nombre,
-      color: colorAportante(nombre),
-      children: grupos.map(([g, filas], i) => ({ name: g, value: sumar(filas, (m) => m[k]), color: aclarar(colorAportante(nombre), Math.min(0.5, i * 0.09)) })).filter((c) => c.value > 0),
-    })
-    return [parte('Departamento de Caldas', 'departamento'), parte('Comité de Cafeteros', 'comite')].filter((n) => (n.children?.length ?? 0) > 0)
-  }, [grupos])
-  const totalCofin = arbolCofin.reduce((s, n) => s + (n.children ?? []).reduce((t, c) => t + (c.value ?? 0), 0), 0)
-  const opcionCofin = useMemo(() => sunburst({ arbol: arbolCofin, fmt: cop, centro: cop(totalCofin), sub: 'cofinanciación', compacto: angosto }), [arbolCofin, totalCofin, angosto])
-
-  const convocados = useMemo(() => {
-    const m = new Map<string, { actividad: string; convocados: number; valor: number; municipios: Set<string> }>()
-    datos.base
-      .filter((x) => x.programa === programa && !x.asistio)
-      .forEach((x) => {
-        const e = m.get(x.actividad) ?? { actividad: x.actividad, convocados: 0, valor: 0, municipios: new Set<string>() }
-        e.convocados += x.cantidad
-        e.valor += x.valor
-        e.municipios.add(x.municipio)
-        m.set(x.actividad, e)
-      })
-    return [...m.values()].map((e) => ({ actividad: e.actividad, convocados: e.convocados, valor: e.valor, municipios: e.municipios.size })).sort((a, b) => b.valor - a.valor)
-  }, [datos, programa])
+  const filasCofin = useMemo(
+    () =>
+      grupos
+        .map(([g, filas]) => ({ nombre: g, partes: [{ nombre: 'Departamento de Caldas', valor: sumar(filas, (m) => m.departamento), color: colorAportante('Departamento de Caldas') }, { nombre: 'Comité de Cafeteros', valor: sumar(filas, (m) => m.comite), color: colorAportante('Comité de Cafeteros') }] }))
+        .filter((f) => f.partes.some((p) => p.valor > 0)),
+    [grupos],
+  )
+  const opcionCofin = useMemo(() => apiladasH({ filas: filasCofin, fmt: cop }), [filasCofin])
+  const totalDepto = sumar(filasCofin, (f) => f.partes[0].valor)
+  const totalComite = sumar(filasCofin, (f) => f.partes[1].valor)
+  const opcionPastelCofin = useMemo(() => pastel({ partes: [{ nombre: 'Departamento de Caldas', valor: totalDepto, color: colorAportante('Departamento de Caldas') }, { nombre: 'Comité de Cafeteros', valor: totalComite, color: colorAportante('Comité de Cafeteros') }], fmt: cop }), [totalDepto, totalComite])
 
   return (
     <>
       <PlacaCabecera placa={placa} titulo="Lo prometido frente a lo hecho" texto="La meta del convenio contra lo ejecutado, actividad por actividad. Las metas y lo ejecutado se actualizan desde el panel de administración.">
-        <Segmentado sobreCampo etiqueta="Programa" valor={programa} onChange={(p) => { setPrograma(p); setVigenciaSel(null) }} opciones={[{ id: 'mf', texto: 'Modelos Flexibles' }, { id: 'uc', texto: 'Universidad en el Campo' }]} />
+        <Segmentado sobreCampo etiqueta="Programa" valor={programa} onChange={(p) => { setPrograma(p); setVigenciaSel(null) }} opciones={[{ id: 'mf', texto: PROGRAMAS.mf.nombre }, { id: 'uc', texto: PROGRAMAS.uc.nombre }]} />
         {vigencias.length > 0 && (
           <label className="flex items-center gap-2 text-sm font-bold">
             Vigencia
@@ -128,36 +104,28 @@ export function Cumplimiento() {
           <Aviso>No hay metas registradas para {cfg.nombre}. Se cargan desde el panel de administración.</Aviso>
         ) : (
           <>
-            <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14">
+            <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] lg:gap-14">
               <div className="space-y-7">
-                <Cifra tam="xl" valor={valorMeta ? pct(valorEj / valorMeta) : '—'} etiqueta={`del valor de las metas ya se ejecutó · vigencia ${vigencia}`} color="var(--ink)" />
+                <Cifra tam="xl" valor={valorMeta ? pct(valorEj / valorMeta) : '—'} etiqueta={`del valor de las metas ya se ejecutó · vigencia ${vigencia}`} />
                 <p className="text-xl leading-relaxed text-ink2">
-                  Se ejecutaron <Marca>{cop(valorEj)}</Marca> de <Marca>{cop(valorMeta)}</Marca>. De <Marca>{num(conMeta.length)} actividades con meta</Marca>, <Marca color="#BFEBCF">{num(cumplidas)} están cumplidas</Marca> y <Marca color="#BFEBCF">{num(superadas)} superaron su meta</Marca>.
+                  Se ejecutaron <Marca>{cop(valorEj)}</Marca> de <Marca>{cop(valorMeta)}</Marca>. De <Marca>{num(conMeta.length)} actividades con meta</Marca>, <Marca color="#BFEBCF">{num(cumplidas)} están cumplidas o superadas</Marca>.
                 </p>
-                <div>
-                  <p className="mb-2 text-sm font-semibold text-ink2">Anillo interior: {cfg.grupo.toLowerCase()}. Anillo exterior: cada actividad, del color de su avance.</p>
-                  <ul className="mb-4 space-y-1.5">
-                    {arbol.map((n) => (
-                      <li key={n.name} className="flex items-center gap-2.5 text-sm font-bold" style={{ color: 'var(--ink)' }}>
-                        <span className="size-3.5 shrink-0 rounded-full" style={{ background: n.color }} />
-                        {n.name}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold">
-                  {(['supera', 'cumple', 'curso'] as Estado[]).map((e) => (
-                    <li key={e} className="flex items-center gap-2">
-                      <span className="size-3.5 rounded-full" style={{ background: COLOR_ESTADO[e] }} />
-                      {TEXTO_ESTADO[e]}
-                    </li>
-                  ))}
-                </ul>
               </div>
-              <Grafico etiqueta={`Metas de ${cfg.nombre} por ${cfg.grupo.toLowerCase()} y actividad, coloreadas por avance`} alto={angosto ? 380 : 600} opcion={opcionSol} />
+              <div className="grid items-center gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <Grafico etiqueta="Actividades por estado de avance" alto={260} opcion={opcionEstado} />
+                <Posiciones items={partesEstado.map((p) => ({ nombre: p.nombre, valor: p.valor, color: p.color }))} fmt={(n) => `${num(n)} act.`} />
+              </div>
             </div>
 
-            <Seccion titulo={`Metas por ${cfg.grupo.toLowerCase()} y actividad`} nota="Meta y ejecutado en las unidades de cada actividad; valores en pesos.">
+            <Seccion titulo={`Avance por ${cfg.grupo.toLowerCase()}`} nota="Valor ejecutado frente al valor de la meta." tono="lavado">
+              <div className="grid gap-x-12 gap-y-7 lg:grid-cols-2">
+                {grupos.map(([g, filas], i) => (
+                  <Progreso key={g} etiqueta={g} valor={sumar(filas, (m) => m.valorEjecutado)} meta={sumar(filas, (m) => m.valorMeta)} fmt={cop} color={placa.apoyo[i % placa.apoyo.length]} />
+                ))}
+              </div>
+            </Seccion>
+
+            <Seccion titulo="Meta y ejecutado, actividad por actividad" nota="Meta y ejecutado en las unidades de cada actividad; valores en pesos.">
               <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-line">
                 <table className="w-full border-collapse text-sm">
                   <thead className="bg-white">
@@ -178,21 +146,22 @@ export function Cumplimiento() {
               </div>
             </Seccion>
 
-            {arbolCofin.length > 0 && (
-              <Seccion titulo="Cofinanciación" nota="Cuánto aportan el Departamento de Caldas y el Comité de Cafeteros a cada proceso." tono="lavado" tabla={{ archivo: 'cofinanciacion', columnas: [{ clave: 'a', titulo: 'Aportante' }, { clave: 'g', titulo: cfg.grupo }, { clave: 'v', titulo: 'Valor', tipo: 'moneda' }], filas: arbolCofin.flatMap((n) => (n.children ?? []).map((c) => ({ a: n.name, g: c.name, v: c.value ?? 0 }))) }}>
-                <div className="mx-auto max-w-2xl">
-                  <Grafico etiqueta="Cofinanciación por aportante y proceso" alto={520} opcion={opcionCofin} />
+            {filasCofin.length > 0 && (
+              <Seccion
+                titulo="Cofinanciación"
+                nota="Cuánto aportan el Departamento de Caldas y el Comité de Cafeteros a cada proceso."
+                tono="lavado"
+                tabla={{ archivo: 'cofinanciacion', columnas: [{ clave: 'g', titulo: cfg.grupo }, { clave: 'd', titulo: 'Departamento de Caldas', tipo: 'moneda' }, { clave: 'c', titulo: 'Comité de Cafeteros', tipo: 'moneda' }], filas: filasCofin.map((f) => ({ g: f.nombre, d: f.partes[0].valor, c: f.partes[1].valor })) }}
+              >
+                <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+                  <Grafico etiqueta="Cofinanciación del Departamento y del Comité por proceso" alto={Math.max(220, filasCofin.length * 60 + 60)} opcion={opcionCofin} />
+                  <div>
+                    <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
+                      Reparto total
+                    </h3>
+                    <Grafico etiqueta="Reparto total de la cofinanciación" alto={280} opcion={opcionPastelCofin} />
+                  </div>
                 </div>
-              </Seccion>
-            )}
-
-            {convocados.length > 0 && (
-              <Seccion titulo="Convocados que no asistieron" nota="Se convocó y se invirtió, pero no hubo asistencia. Cuenta en la inversión total y aquí se ve aparte.">
-                <Tabla
-                  archivo="convocados-que-no-asistieron"
-                  columnas={[{ clave: 'actividad', titulo: 'Actividad' }, { clave: 'convocados', titulo: 'Convocatorias sin asistencia', tipo: 'cantidad' }, { clave: 'municipios', titulo: 'Municipios', tipo: 'numero' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' }]}
-                  filas={convocados}
-                />
               </Seccion>
             )}
           </>

@@ -2,6 +2,7 @@ import type { EChartsCoreOption } from 'echarts/core'
 import { TINTA, textoSobre, type Placa } from './colores'
 
 const FUENTE = "'Albert Sans Variable', system-ui, sans-serif"
+const MONO = "'Spline Sans Mono Variable', ui-monospace, monospace"
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
 
 function comun() {
@@ -51,6 +52,8 @@ interface OpcionesMapa {
   /** Solo se pintan los municipios de esta banda; el resto queda atenuado. */
   banda?: number | null
   max?: number
+  /** Segunda línea del tooltip por municipio (p. ej. la cantidad). */
+  extra?: Record<string, string>
 }
 
 export function mapa(o: OpcionesMapa): EChartsCoreOption {
@@ -76,7 +79,7 @@ export function mapa(o: OpcionesMapa): EChartsCoreOption {
     tooltip: {
       ...c.tooltip,
       trigger: 'item',
-      formatter: (p: { name: string; value?: number }) => `<b>${esc(p.name)}</b><br/>${typeof p.value === 'number' && !isNaN(p.value) ? o.fmt(p.value) : 'Sin datos en este tablero'}`,
+      formatter: (p: { name: string; value?: number }) => `<b>${esc(p.name)}</b><br/>${typeof p.value === 'number' && !isNaN(p.value) ? o.fmt(p.value) : 'Sin datos en este tablero'}${o.extra?.[p.name] ? `<br/>${esc(o.extra[p.name])}` : ''}`,
     },
     series: [
       {
@@ -99,98 +102,141 @@ export function mapa(o: OpcionesMapa): EChartsCoreOption {
   }
 }
 
-/* ------------------------------------------------------------------ jerarquías */
+/* ------------------------------------------------------------------ barras */
 
-export interface Nodo {
-  name: string
-  value?: number
+export interface Item {
+  nombre: string
+  valor: number
   color?: string
-  children?: Nodo[]
 }
 
-function pintar(n: Nodo): Record<string, unknown> {
-  const color = n.color ?? '#999999'
-  return {
-    name: n.name,
-    value: n.value,
-    itemStyle: { color },
-    label: { color: textoSobre(color) },
-    upperLabel: { color: textoSobre(color) },
-    children: n.children?.map(pintar),
-  }
+/** Alto del contenedor de barras horizontales: una fila por elemento. */
+export const altoBarras = (n: number) => Math.max(150, n * 36 + 16)
+
+interface OpcionesBarrasH {
+  items: Item[]
+  color: string
+  fmt: (n: number) => string
+  /** Nombres elegidos: el resto se atenúa (resaltado cruzado). */
+  seleccion?: string[]
+  /** Ancho reservado para el nombre a la izquierda. */
+  ancho?: number
+  /** Ancho reservado a la derecha para el valor completo. */
+  derecha?: number
 }
 
-export function treemap(o: { arbol: Nodo[]; fmt: (n: number) => string }): EChartsCoreOption {
+/** Barras horizontales con el valor completo al final de cada una. */
+export function barrasH(o: OpcionesBarrasH): EChartsCoreOption {
   const c = comun()
+  const items = [...o.items].reverse() // el eje de categorías se dibuja de abajo hacia arriba
+  const hay = (o.seleccion?.length ?? 0) > 0
   return {
     ...c,
-    tooltip: { ...c.tooltip, trigger: 'item', formatter: (p: { name: string; value: number; treePathInfo?: { name: string }[] }) => `${esc((p.treePathInfo ?? []).slice(1).map((x) => x.name).join(' › ') || p.name)}<br/><b>${o.fmt(p.value)}</b>` },
+    grid: { left: 4, right: o.derecha ?? 128, top: 2, bottom: 2, containLabel: true },
+    tooltip: {
+      ...c.tooltip,
+      trigger: 'axis',
+      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(29,26,74,0.05)' } },
+      formatter: (p: { name: string; value: number }[]) => `${esc(p[0].name)}<br/><b>${o.fmt(p[0].value)}</b>`,
+    },
+    xAxis: { type: 'value', show: false },
+    yAxis: {
+      type: 'category',
+      data: items.map((i) => i.nombre),
+      axisLabel: { color: TINTA.texto, fontWeight: 600, fontSize: 13, width: o.ancho ?? 170, overflow: 'truncate' },
+      axisLine: { show: false },
+      axisTick: { show: false },
+    },
     series: [
       {
-        type: 'treemap',
-        data: o.arbol.map(pintar),
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 34,
-        roam: false,
-        name: 'Todo',
-        nodeClick: 'zoomToNode',
-        drillDownIcon: '',
-        leafDepth: 1,
-        squareRatio: 1.1,
-        breadcrumb: { show: true, bottom: 0, height: 26, itemStyle: { color: '#ffffff', borderColor: TINTA.linea, textStyle: { color: TINTA.texto, fontFamily: FUENTE, fontSize: 12 } }, emphasis: { itemStyle: { color: '#f0eefb' } } },
-        upperLabel: { show: true, height: 28, fontFamily: FUENTE, fontWeight: 700, fontSize: 13, formatter: (p: { name: string; value: number }) => `${p.name} · ${o.fmt(p.value)}` },
-        label: { show: true, position: 'insideTopLeft', fontFamily: FUENTE, fontSize: 12, fontWeight: 600, padding: [8, 10], formatter: (p: { name: string; value: number }) => `{n|${p.name}}\n{v|${o.fmt(p.value)}}`, rich: { n: { fontSize: 13, fontWeight: 700, lineHeight: 18 }, v: { fontSize: 12, fontWeight: 500, lineHeight: 16 } }, overflow: 'truncate' },
-        itemStyle: { borderColor: '#ffffff', borderWidth: 3, gapWidth: 3, borderRadius: 8 },
-        levels: [{ itemStyle: { borderWidth: 0, gapWidth: 4 }, upperLabel: { show: false } }, { itemStyle: { borderWidth: 0, gapWidth: 3 } }],
+        type: 'bar',
+        barWidth: 18,
+        showBackground: true,
+        backgroundStyle: { color: 'rgba(29,26,74,0.06)', borderRadius: 9 },
+        data: items.map((i) => ({
+          value: i.valor,
+          name: i.nombre,
+          itemStyle: { color: hay && !o.seleccion!.includes(i.nombre) ? '#D9D5EA' : (i.color ?? o.color), borderRadius: 9 },
+        })),
+        label: { show: true, position: 'right', color: TINTA.texto, fontSize: 12, fontFamily: MONO, fontWeight: 600, formatter: (p: { value: number }) => o.fmt(p.value) },
       },
     ],
   }
 }
 
-const profundidad = (ns: Nodo[]): number => (ns.length ? 1 + Math.max(...ns.map((n) => profundidad(n.children ?? []))) : 0)
+interface SerieCol {
+  nombre: string
+  color: string
+  datos: number[]
+}
 
-export function sunburst(o: { arbol: Nodo[]; fmt: (n: number) => string; centro: string; sub?: string; radio?: [string, string]; compacto?: boolean; sinEtiquetas?: boolean }): EChartsCoreOption {
+/** Columnas para comparar años (agrupadas o apiladas). El valor completo sale en el eje y en el tooltip. */
+export function columnas(o: { categorias: string[]; series: SerieCol[]; fmt: (n: number) => string; apilada?: boolean; seleccion?: string[] }): EChartsCoreOption {
   const c = comun()
-  const d = profundidad(o.arbol)
-  const oculto = { show: false }
-  // Los radios dependen de cuántos niveles hay de verdad: si no, el anillo exterior queda vacío.
-  const niveles =
-    d <= 2
-      ? [{}, { r0: '24%', r: '58%', label: o.sinEtiquetas ? oculto : o.compacto ? { rotate: 0, fontSize: 11, minAngle: 24 } : { rotate: 0, fontWeight: 700, fontSize: 13, minAngle: 16 } }, { r0: '58%', r: '98%', label: oculto }]
-      : [{}, { r0: '24%', r: '47%', label: o.compacto ? { rotate: 0, fontSize: 10, minAngle: 40 } : { rotate: 0, fontWeight: 700, fontSize: 13, minAngle: 22 } }, { r0: '47%', r: '72%', label: o.compacto ? oculto : { rotate: 'tangential', minAngle: 50 } }, { r0: '72%', r: '98%', label: o.compacto ? oculto : { rotate: 'radial', minAngle: 24 } }]
+  const varias = o.series.length > 1
+  const hay = (o.seleccion?.length ?? 0) > 0
   return {
     ...c,
-    tooltip: { ...c.tooltip, trigger: 'item', formatter: (p: { name: string; value: number; treePathInfo?: { name: string }[] }) => `${esc((p.treePathInfo ?? []).map((x) => x.name).join(' › ') || p.name)}<br/><b>${o.fmt(p.value)}</b>` },
-    graphic: [
-      {
-        type: 'text',
-        left: 'center',
-        top: 'middle',
-        silent: true,
-        style: { text: `{a|${o.centro}}${o.sub ? `
-{b|${o.sub}}` : ''}`, textAlign: 'center', rich: { a: { fontSize: tam(o.centro, o.compacto ? 92 : 150, o.compacto ? 17 : 24), fontWeight: 800, fill: TINTA.texto, fontFamily: "'Bricolage Grotesque Variable', " + FUENTE, lineHeight: o.compacto ? 20 : 28 }, b: { fontSize: o.compacto ? 10 : 12, fill: TINTA.texto2, lineHeight: 16 } } },
+    grid: { left: 4, right: 12, top: varias ? 40 : 14, bottom: 4, containLabel: true },
+    legend: varias ? { top: 0, left: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 12, itemGap: 18, textStyle: { color: TINTA.texto, fontSize: 13, fontWeight: 600 }, data: o.series.map((s) => s.nombre) } : { show: false },
+    tooltip: {
+      ...c.tooltip,
+      trigger: 'axis',
+      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(29,26,74,0.05)' } },
+      formatter: (p: { name: string; marker: string; seriesName: string; value: number }[]) => {
+        const total = p.reduce((s, x) => s + x.value, 0)
+        return `<b>${esc(String(p[0].name))}</b><br/>${p.map((x) => `${x.marker} ${esc(x.seriesName)}: <b>${o.fmt(x.value)}</b>`).join('<br/>')}${p.length > 1 ? `<br/>Total: <b>${o.fmt(total)}</b>` : ''}`
       },
-    ],
-    series: [
-      {
-        type: 'sunburst',
-        data: o.arbol.map(pintar),
-        radius: o.radio ?? ['24%', '98%'],
-        center: ['50%', '50%'],
-        nodeClick: false,
-        startAngle: 90,
-        itemStyle: { borderColor: '#ffffff', borderWidth: 2.5, borderRadius: 6 },
-        label: { fontFamily: FUENTE, fontSize: 12, fontWeight: 600, overflow: 'truncate', rotate: 'radial' },
-        emphasis: { focus: 'ancestor' },
-        levels: niveles,
-      },
-    ],
+    },
+    xAxis: { type: 'category', data: o.categorias, axisLabel: { color: TINTA.texto, fontWeight: 700, fontSize: 14 }, axisLine: { lineStyle: { color: TINTA.linea } }, axisTick: { show: false } },
+    yAxis: { type: 'value', axisLabel: { color: TINTA.suave, fontFamily: MONO, fontSize: 11, formatter: o.fmt }, splitLine: { lineStyle: { color: TINTA.linea } }, axisLine: { show: false } },
+    series: o.series.map((s, idx) => ({
+      type: 'bar',
+      name: s.nombre,
+      stack: o.apilada ? 't' : undefined,
+      barMaxWidth: o.apilada ? 60 : 44,
+      barGap: '12%',
+      itemStyle: { color: s.color },
+      data: s.datos.map((v, i) => ({
+        value: v,
+        itemStyle: { color: hay && !o.seleccion!.includes(o.categorias[i]) ? '#D9D5EA' : s.color, borderRadius: o.apilada ? (idx === o.series.length - 1 ? [8, 8, 0, 0] : 0) : [8, 8, 0, 0], borderColor: '#ffffff', borderWidth: o.apilada ? 2 : 0 },
+      })),
+    })),
   }
 }
 
-/* ------------------------------------------------------------------ dona */
+/** Barras horizontales apiladas: reparto de cada fila entre varias partes (p. ej. aportante por proceso). */
+export function apiladasH(o: { filas: { nombre: string; partes: { nombre: string; valor: number; color: string }[] }[]; fmt: (n: number) => string; ancho?: number }): EChartsCoreOption {
+  const c = comun()
+  const nombres = [...new Set(o.filas.flatMap((f) => f.partes.map((p) => p.nombre)))]
+  const filas = [...o.filas].reverse()
+  return {
+    ...c,
+    grid: { left: 4, right: 12, top: 34, bottom: 4, containLabel: true },
+    legend: { top: 0, left: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 12, itemGap: 18, textStyle: { color: TINTA.texto, fontSize: 13, fontWeight: 600 } },
+    tooltip: {
+      ...c.tooltip,
+      trigger: 'axis',
+      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(29,26,74,0.05)' } },
+      formatter: (p: { name: string; marker: string; seriesName: string; value: number }[]) => `<b>${esc(p[0].name)}</b><br/>${p.map((x) => `${x.marker} ${esc(x.seriesName)}: <b>${o.fmt(x.value)}</b>`).join('<br/>')}`,
+    },
+    xAxis: { type: 'value', axisLabel: { color: TINTA.suave, fontFamily: MONO, fontSize: 11, formatter: o.fmt }, splitLine: { lineStyle: { color: TINTA.linea } }, axisLine: { show: false } },
+    yAxis: { type: 'category', data: filas.map((f) => f.nombre), axisLabel: { color: TINTA.texto, fontWeight: 600, fontSize: 13, width: o.ancho ?? 190, overflow: 'truncate' }, axisLine: { show: false }, axisTick: { show: false } },
+    series: nombres.map((n, i) => ({
+      type: 'bar',
+      name: n,
+      stack: 'p',
+      barWidth: 22,
+      itemStyle: { color: o.filas.flatMap((f) => f.partes).find((p) => p.nombre === n)?.color ?? TINTA.vacio },
+      data: filas.map((f) => {
+        const parte = f.partes.find((p) => p.nombre === n)
+        return { value: parte?.valor ?? 0, itemStyle: { color: parte?.color ?? TINTA.vacio, borderColor: '#ffffff', borderWidth: 2, borderRadius: i === nombres.length - 1 ? [0, 8, 8, 0] : 0 } }
+      }),
+    })),
+  }
+}
+
+/* ------------------------------------------------------------------ anillo y pastel */
 
 export function dona(o: { partes: { nombre: string; valor: number; color: string }[]; centro: string; sub?: string; fmt: (n: number) => string; seleccion?: string[] }): EChartsCoreOption {
   const c = comun()
@@ -204,7 +250,7 @@ export function dona(o: { partes: { nombre: string; valor: number; color: string
         left: 'center',
         top: 'middle',
         silent: true,
-        style: { text: `{a|${o.centro}}${o.sub ? `\n{b|${o.sub}}` : ''}`, textAlign: 'center', rich: { a: { fontSize: tam(o.centro, 118, 20), fontWeight: 800, fill: TINTA.texto, fontFamily: "'Bricolage Grotesque Variable', " + FUENTE, lineHeight: 22 }, b: { fontSize: 12, fill: TINTA.texto2, lineHeight: 16 } } },
+        style: { text: `{a|${o.centro}}${o.sub ? `\n{b|${o.sub}}` : ''}`, textAlign: 'center', rich: { a: { fontSize: tam(o.centro, 118, 22), fontWeight: 800, fill: TINTA.texto, fontFamily: "'Bricolage Grotesque Variable', " + FUENTE, lineHeight: 24 }, b: { fontSize: 12, fill: TINTA.texto2, lineHeight: 16 } } },
       },
     ],
     series: [
@@ -224,39 +270,72 @@ export function dona(o: { partes: { nombre: string; valor: number; color: string
   }
 }
 
-/* ------------------------------------------------------------------ burbujas (fuerza) */
-
-export function burbujas(o: { items: { nombre: string; valor: number; color: string }[]; fmt: (n: number) => string; seleccion?: string[] }): EChartsCoreOption {
+/** Pastel completo, con el nombre y el porcentaje de cada porción. */
+export function pastel(o: { partes: { nombre: string; valor: number; color: string }[]; fmt: (n: number) => string; seleccion?: string[] }): EChartsCoreOption {
   const c = comun()
-  const max = Math.max(1, ...o.items.map((i) => i.valor))
   const hay = (o.seleccion?.length ?? 0) > 0
   return {
     ...c,
-    tooltip: { ...c.tooltip, trigger: 'item', formatter: (p: { name: string; value: number }) => `${esc(p.name)}<br/><b>${o.fmt(p.value)}</b>` },
+    tooltip: { ...c.tooltip, trigger: 'item', formatter: (p: { name: string; value: number; percent: number }) => `${esc(p.name)}<br/><b>${o.fmt(p.value)}</b> · ${p.percent.toFixed(1).replace('.', ',')} %` },
     series: [
       {
-        type: 'graph',
-        layout: 'force',
-        roam: false,
-        draggable: true,
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        force: { repulsion: [60, 200], gravity: 0.15, friction: 0.2, edgeLength: 55, layoutAnimation: true },
-        emphasis: { focus: 'self', scale: 1.12 },
-        label: { show: true, position: 'inside', fontFamily: FUENTE, fontWeight: 700, fontSize: 10 },
-        data: o.items.map((i) => {
-          const r = 15 + Math.sqrt(i.valor / max) * 36
-          const color = hay && !o.seleccion!.includes(i.nombre) ? '#E4E0F1' : i.color
-          return {
-            name: i.nombre,
-            value: i.valor,
-            symbolSize: r * 2,
-            itemStyle: { color, borderColor: '#ffffff', borderWidth: 3 },
-            label: { show: r > 26, color: textoSobre(color), formatter: () => (i.nombre.length > 14 ? i.nombre.slice(0, 13) + '…' : i.nombre), width: r * 1.7, overflow: 'truncate' },
-          }
-        }),
+        type: 'pie',
+        radius: ['0%', '68%'],
+        center: ['50%', '52%'],
+        padAngle: 1.5,
+        startAngle: 80,
+        itemStyle: { borderRadius: 8, borderColor: '#ffffff', borderWidth: 2 },
+        label: { show: true, color: TINTA.texto, fontFamily: FUENTE, fontSize: 12, fontWeight: 600, formatter: (p: { name: string; percent: number }) => `${p.name.length > 22 ? p.name.slice(0, 21) + '…' : p.name}\n${p.percent.toFixed(1).replace('.', ',')} %`, lineHeight: 16 },
+        labelLine: { length: 12, length2: 10, lineStyle: { color: TINTA.suave } },
+        emphasis: { scaleSize: 6 },
+        data: o.partes.map((p) => ({ name: p.nombre, value: p.valor, itemStyle: { color: hay && !o.seleccion!.includes(p.nombre) ? TINTA.vacio : p.color } })),
+      },
+    ],
+  }
+}
+
+/* ------------------------------------------------------------------ sunburst (solo en el Resumen) */
+
+export interface Nodo {
+  name: string
+  value?: number
+  color?: string
+  children?: Nodo[]
+}
+
+function pintar(n: Nodo): Record<string, unknown> {
+  const color = n.color ?? '#999999'
+  return { name: n.name, value: n.value, itemStyle: { color }, label: { color: textoSobre(color) }, children: n.children?.map(pintar) }
+}
+
+export function sunburst(o: { arbol: Nodo[]; fmt: (n: number) => string; centro: string; sub?: string; compacto?: boolean }): EChartsCoreOption {
+  const c = comun()
+  const oculto = { show: false }
+  const niveles = [{}, { r0: '24%', r: '47%', label: o.compacto ? { rotate: 0, fontSize: 10, minAngle: 40 } : { rotate: 0, fontWeight: 700, fontSize: 13, minAngle: 22 } }, { r0: '47%', r: '72%', label: o.compacto ? oculto : { rotate: 'tangential', minAngle: 50 } }, { r0: '72%', r: '98%', label: o.compacto ? oculto : { rotate: 'radial', minAngle: 24 } }]
+  return {
+    ...c,
+    tooltip: { ...c.tooltip, trigger: 'item', formatter: (p: { name: string; value: number; treePathInfo?: { name: string }[] }) => `${esc((p.treePathInfo ?? []).map((x) => x.name).join(' › ') || p.name)}<br/><b>${o.fmt(p.value)}</b>` },
+    graphic: [
+      {
+        type: 'text',
+        left: 'center',
+        top: 'middle',
+        silent: true,
+        style: { text: `{a|${o.centro}}${o.sub ? `\n{b|${o.sub}}` : ''}`, textAlign: 'center', rich: { a: { fontSize: tam(o.centro, o.compacto ? 92 : 150, o.compacto ? 17 : 24), fontWeight: 800, fill: TINTA.texto, fontFamily: "'Bricolage Grotesque Variable', " + FUENTE, lineHeight: o.compacto ? 20 : 28 }, b: { fontSize: o.compacto ? 10 : 12, fill: TINTA.texto2, lineHeight: 16 } } },
+      },
+    ],
+    series: [
+      {
+        type: 'sunburst',
+        data: o.arbol.map(pintar),
+        radius: ['24%', '98%'],
+        center: ['50%', '50%'],
+        nodeClick: false,
+        startAngle: 90,
+        itemStyle: { borderColor: '#ffffff', borderWidth: 2.5, borderRadius: 6 },
+        label: { fontFamily: FUENTE, fontSize: 12, fontWeight: 600, overflow: 'truncate', rotate: 'radial' },
+        emphasis: { focus: 'ancestor' },
+        levels: niveles,
       },
     ],
   }

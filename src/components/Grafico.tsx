@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts/core'
 import type { EChartsCoreOption, ECharts } from 'echarts/core'
-import { GraphChart, MapChart, PieChart, SunburstChart, TreemapChart } from 'echarts/charts'
-import { AriaComponent, GraphicComponent, TooltipComponent } from 'echarts/components'
+import { BarChart, MapChart, PieChart, SunburstChart } from 'echarts/charts'
+import { AriaComponent, GraphicComponent, GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
 import { LabelLayout } from 'echarts/features'
 import { CanvasRenderer } from 'echarts/renderers'
 import caldas from '../data/caldas.json'
 
-echarts.use([GraphChart, MapChart, PieChart, SunburstChart, TreemapChart, AriaComponent, GraphicComponent, TooltipComponent, LabelLayout, CanvasRenderer])
+echarts.use([BarChart, MapChart, PieChart, SunburstChart, AriaComponent, GraphicComponent, GridComponent, LegendComponent, TooltipComponent, LabelLayout, CanvasRenderer])
 // Contornos de los 27 municipios de Caldas (DANE, vía geoBoundaries CC BY 4.0): ver scripts/mapa_caldas.py
 echarts.registerMap('caldas', caldas as unknown as Parameters<typeof echarts.registerMap>[1])
 

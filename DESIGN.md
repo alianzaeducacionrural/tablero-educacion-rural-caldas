@@ -11,7 +11,7 @@ Cada pestaña es una lámina con su propia familia de color. Se aplica a toda la
 | Lámina | Campo (`main`) | Fondo (`soft`) | Escala de tintas |
 |---|---|---|---|
 | Resumen | violeta `#6D2EE8` | `#F4EEFF` | atardecer: amarillo → naranja → rosa → violeta |
-| Modelos Flexibles | azul `#1F5FFF` | `#E8F1FF` | océano: menta → cian → azul → índigo |
+| Modelos Educativos Flexibles | azul `#1F5FFF` | `#E8F1FF` | océano: menta → cian → azul → índigo |
 | Universidad en el Campo | magenta `#D91E8C` | `#FFEAF5` | baya: rosa pálido → magenta → ciruela |
 | Estudiantes | verde `#0B8F58` | `#E6F8DA` | cafetal: lima → verde → verde azulado |
 | Cobertura | ámbar `#F59A0B` | `#FFF4D6` | cosecha: amarillo → naranja → terracota |
@@ -20,7 +20,7 @@ Cada pestaña es una lámina con su propia familia de color. Se aplica a toda la
 
 Tinta de texto siempre índigo profundo `#1D1A4A` (nunca negro puro). Texto sobre el campo: blanco, salvo ámbar (tinta oscura).
 
-**Color por entidad, no por posición:** Modelos Flexibles = azul, Universidad en el Campo = magenta, Departamento de Caldas = violeta, Comité de Cafeteros = naranja. Estados de estudiante: graduado verde, activo azul, pendiente ámbar, desertor rojo. El color nunca es el único portador de significado (etiqueta o icono siempre).
+**Color por entidad, no por posición:** Modelos Educativos Flexibles = azul, Universidad en el Campo = magenta, Departamento de Caldas = violeta, Comité de Cafeteros = naranja. Estados de estudiante: graduado verde, activo azul, pendiente ámbar, desertor rojo. El color nunca es el único portador de significado (etiqueta o icono siempre).
 
 ## Tipografía
 - **Bricolage Grotesque** (variable, eje de ancho 88 %, peso 800, tracking −0.025em): titulares y cifras. Máximo `5.5rem`.
@@ -31,25 +31,29 @@ Auto-alojadas con `@fontsource-variable/*`.
 ## Composición
 Sin tarjetas KPI. Cifras grandes sueltas sobre el fondo, frases con las cifras resaltadas como marcador (`Marca`), secciones abiertas o sobre un lavado del color de la lámina (`tono="lavado"`, radio 28 px). Sin anidar contenedores.
 
-## Piezas propias (`components/Lamina.tsx`)
-- `PlacaCabecera`: campo de color a todo el ancho con la silueta real de Caldas.
-- `MapaCaldas` + `LeyendaCotas`: mapa tintado en 7 bandas (escala de raíz cuadrada); tocar un tramo de la leyenda aísla esos municipios; Manizales en gris (convenio propio, sin datos).
-- `Cafetal`: un punto por estudiante, agrupado por cohorte, pintado por estado; animación de entrada escalonada.
-- `Vertices`: un valor por año con símbolo de vértice geodésico.
-- `Posiciones`: ranking como lista con punto de color, sin barras.
-Visuales ECharts (`lib/graficos.ts`): mapa, treemap con descenso, sunburst (niveles según la profundidad real), dona, burbujas de fuerza arrastrables. Cada visual tiene su tabla equivalente y descarga en CSV.
+## Mezcla de visuales
+Predominan las **barras, los anillos y el pastel, las tablas, las barras de avance y las comparaciones entre años**, sobre el mapa real de Caldas. No se usan burbujas ni treemap (el usuario los descartó); el sunburst queda solo en el Resumen (aportante → programa → proyecto).
+- `RankingBarras` (`components/Ranking.tsx`): ranking en HTML, una fila por elemento, con la barra, el **valor completo** y la **cantidad** a la vez. Cada fila filtra.
+- `columnas` (ECharts): comparación entre años, agrupada o apilada; en las láminas de programa hay una para Valor y otra para Cantidad, lado a lado.
+- `TablaAniosDual` / `TablaAnios`: los años en tabla con el cambio frente al año anterior (icono y color, nunca solo color).
+- `Progreso`: barra de avance de lo ejecutado contra la meta, con icono y texto.
+- `dona` / `pastel` / `apiladasH`: reparto por estado, aportante, universidad o género; cofinanciación por proceso.
+- `MapaCaldas` + `LeyendaCotas`: mapa tintado en 7 bandas; tocar un tramo aísla esos municipios; el tooltip suma la segunda cifra; Manizales en gris.
+- `Cafetal`: un punto por estudiante, por cohorte y estado.
+- `PlacaCabecera`: campo de color con la silueta real de Caldas.
+**Valor y Cantidad no se alternan: se muestran siempre juntos.**
+
+## Filtros
+Barra lateral fija a la izquierda en escritorio, con secciones plegables (Año, Municipio y los de cada lámina); en el celular se abre a pantalla completa con un botón «Filtros». Lo elegido aparece además como etiquetas con una x sobre los resultados. Los filtros globales (año, municipio) se conservan al cambiar de lámina.
 
 ## Logos institucionales
-Barra superior (fondo blanco): escudo Gobierno de Caldas · Secretaría de Educación y Comité de Cafeteros en vinotinto. Pie (banda del color de la lámina): el logo de la Gobernación sobre un recuadro blanco (su texto es gris y no se lee sobre color) y el del Comité en blanco, o en negro sobre el ámbar de Cobertura, donde el blanco no contrasta. Nunca se recolorean ni se deforman.
-
-## Controles
-Píldoras: interruptor segmentado, chips de año, listas desplegables con búsqueda. Estado activo = campo de la lámina. Foco visible de 3 px en tinta. Iconos dibujados con un solo trazo (`Icono.tsx`), sin glifos ni emoji.
+Membrete oficial: franja blanca superior con el escudo Gobierno de Caldas · Secretaría de Educación a la izquierda y el Comité de Cafeteros de Caldas a la derecha, y el mismo par cerrando la página. El Comité va **solo en negro** (o blanco si algún día va sobre un color oscuro); el vinotinto no se usa. La Gobernación va siempre sobre blanco (su texto es gris). Nunca se recolorean ni se deforman.
 
 ## Movimiento
 Un solo gesto de entrada por lámina (fundido del fondo y del titular, `cubic-bezier(.19,1,.22,1)`), más la animación de los puntos del cafetal y el re-teñido del mapa al filtrar. `prefers-reduced-motion` lo reduce a cero.
 
 ## Responsivo
-Cabeceras con la silueta atenuada en móvil, sunburst en modo compacto (sin etiquetas, centro reducido), cohortes del cafetal que se reparten en filas.
+Cabeceras con la silueta atenuada en móvil, sunburst en modo compacto (sin etiquetas, centro reducido), filas de ranking en dos líneas (barra debajo del nombre), filtros en panel a pantalla completa.
 
 ## Antipatrones que se evitan
 Kicker sobre el titular, tarjetas iguales con icono+título+texto, gradientes en texto, borde de color lateral, sombras duras, iconos con emoji o glifos Unicode.

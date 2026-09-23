@@ -14,6 +14,24 @@ export function agrupar<T>(filas: T[], clave: (f: T) => string, valor: (f: T) =>
   return [...m.entries()].map(([nombre, v]) => ({ nombre, valor: v })).sort((a, b) => b.valor - a.valor || alfa(a.nombre, b.nombre))
 }
 
+export interface ParDoble {
+  nombre: string
+  valor: number
+  cantidad: number
+}
+
+/** Suma dos medidas por `clave` y ordena por la primera (de mayor a menor). */
+export function agruparDoble<T>(filas: T[], clave: (f: T) => string, valor: (f: T) => number, cantidad: (f: T) => number): ParDoble[] {
+  const m = new Map<string, { valor: number; cantidad: number }>()
+  filas.forEach((f) => {
+    const e = m.get(clave(f)) ?? { valor: 0, cantidad: 0 }
+    e.valor += valor(f)
+    e.cantidad += cantidad(f)
+    m.set(clave(f), e)
+  })
+  return [...m.entries()].map(([nombre, e]) => ({ nombre, ...e })).sort((x, y) => y.valor - x.valor || alfa(x.nombre, y.nombre))
+}
+
 export const top = (pares: Par[], n: number) => pares.slice(0, n)
 
 /** Descarga un CSV (con BOM para que Excel respete las tildes). */

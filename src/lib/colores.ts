@@ -40,7 +40,7 @@ export const PLACAS: Record<string, Placa> = {
   },
   mf: {
     id: 'mf',
-    nombre: 'Modelos Flexibles',
+    nombre: 'Modelos Educativos Flexibles',
     ruta: '/modelos-flexibles',
     frase: 'Escuelas rurales que se acompañan de cerca',
     main: '#1F5FFF',

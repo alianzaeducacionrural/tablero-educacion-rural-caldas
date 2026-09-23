@@ -16,6 +16,7 @@ const D: Record<string, ReactNode> = {
   vertice: <><path d="M12 4l8 15H4z" /><circle cx="12" cy="14.5" r="1.4" fill="currentColor" /></>,
   encurso: <><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></>,
   pareja: <path d="M5 12h14M12 5v14" />,
+  filtro: <path d="M4 5h16l-6.2 7.4V19l-3.6 1.6v-8.2z" />,
 }
 
 export function Icono({ n, size = 16, className = '' }: { n: keyof typeof D; size?: number; className?: string }) {

@@ -167,7 +167,7 @@ function Registrar({ token, quien }: Props) {
 
   return (
     <form onSubmit={enviar} className="space-y-4 rounded-xl border border-line bg-surface p-5">
-      <Segmentado etiqueta="Programa" valor={programa} onChange={(p) => { setPrograma(p); setF((s) => ({ ...s, grupo: '', actividad: '' })) }} opciones={[{ id: 'mf', texto: 'Modelos Flexibles' }, { id: 'uc', texto: 'Universidad en el Campo' }]} />
+      <Segmentado etiqueta="Programa" valor={programa} onChange={(p) => { setPrograma(p); setF((s) => ({ ...s, grupo: '', actividad: '' })) }} opciones={[{ id: 'mf', texto: 'Modelos Educativos Flexibles' }, { id: 'uc', texto: 'Universidad en el Campo' }]} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Campo etiqueta="Año"><input required type="number" min={2020} max={2100} value={f.anio} onChange={(e) => set('anio')(e.target.value)} className={entrada} /></Campo>
         <Campo etiqueta="Municipio">
@@ -294,7 +294,7 @@ function Metas({ token, quien }: Props) {
   return (
     <div className="space-y-4 rounded-xl border border-line bg-surface p-5">
       <div className="flex flex-wrap items-center gap-3">
-        <Segmentado etiqueta="Programa" valor={programa} onChange={(p) => { setPrograma(p); setVigSel(null); setCambios({}) }} opciones={[{ id: 'mf', texto: 'Modelos Flexibles' }, { id: 'uc', texto: 'Universidad en el Campo' }]} />
+        <Segmentado etiqueta="Programa" valor={programa} onChange={(p) => { setPrograma(p); setVigSel(null); setCambios({}) }} opciones={[{ id: 'mf', texto: 'Modelos Educativos Flexibles' }, { id: 'uc', texto: 'Universidad en el Campo' }]} />
         {vigencias.length > 0 && (
           <label className="flex items-center gap-2 text-sm text-muted">
             Vigencia

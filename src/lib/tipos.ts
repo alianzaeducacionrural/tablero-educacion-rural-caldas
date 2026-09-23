@@ -1,7 +1,7 @@
 export type Programa = 'mf' | 'uc'
 
 export const PROGRAMAS: Record<Programa, { nombre: string; grupo: string; grupos: string; ruta: string }> = {
-  mf: { nombre: 'Modelos Flexibles', grupo: 'Proyecto', grupos: 'Proyectos', ruta: '/modelos-flexibles' },
+  mf: { nombre: 'Modelos Educativos Flexibles', grupo: 'Proyecto', grupos: 'Proyectos', ruta: '/modelos-flexibles' },
   uc: { nombre: 'Universidad en el Campo', grupo: 'Proceso', grupos: 'Procesos', ruta: '/universidad-en-el-campo' },
 }
 

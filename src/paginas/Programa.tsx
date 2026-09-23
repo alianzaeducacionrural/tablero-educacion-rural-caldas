@@ -106,7 +106,7 @@ export function Programa({ programa }: { programa: Prog }) {
     <>
       <PlacaCabecera placa={placa} titulo={cfg.nombre} texto={`${placa.frase}. En cada visual verás el valor invertido y la cantidad de actividades, juntos. Toca el mapa o una barra para filtrar.`} />
 
-      <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} activos={etiquetas.length} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
+      <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
           <MapaCaldas datos={datosMapa} extra={extraMapa} placa={placa} fmt={cop} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta={`Valor de ${cfg.nombre} por municipio`} />
           <div className="space-y-6">

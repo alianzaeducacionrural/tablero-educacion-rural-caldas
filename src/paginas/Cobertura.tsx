@@ -105,7 +105,7 @@ export function Cobertura() {
     <>
       <PlacaCabecera placa={placa} titulo="Hasta dónde llega" texto="Estudiantes beneficiados por Modelos Educativos Flexibles, municipio por municipio, hasta cada sede. Es la suma de los años elegidos: quien se atendió en varios años puede contarse más de una vez." />
 
-      <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} activos={etiquetas.length} onLimpiar={f.limpiar} />} etiquetas={etiquetas} onLimpiar={f.limpiar}>
+      <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={f.limpiar} />} etiquetas={etiquetas} onLimpiar={f.limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
           <MapaCaldas datos={datosMapa} extra={extraMapa} placa={placa} fmt={num} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta="Estudiantes beneficiados por municipio" />
           <div className="space-y-6">

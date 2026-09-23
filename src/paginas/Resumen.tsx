@@ -106,10 +106,10 @@ export function Resumen() {
     <>
       <PlacaCabecera placa={placa} titulo="El recurso, sobre el mapa" texto="Cuánto invirtió la Gobernación de Caldas en educación rural, quién lo aportó y a qué municipios llegó. Toca el mapa para filtrar todo lo demás." />
 
-      <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} activos={etiquetas.length} onLimpiar={f.limpiar} />} etiquetas={etiquetas} onLimpiar={f.limpiar}>
+      <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={f.limpiar} />} etiquetas={etiquetas} onLimpiar={f.limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
           <div className="space-y-6">
-            <Cifra tam="md" valor={cop(total)} etiqueta={`invertidos en educación rural${rango ? `, ${rango}` : ''}`} />
+            <Cifra tam="md" valor={cop(total)} etiqueta={`invertidos en educación rural${f.anios.length ? `, ${[...f.anios].sort().join(', ')}` : rango ? `, ${rango}` : ''}`} />
             <p className="text-lg leading-relaxed text-ink2">
               Llegó a <Marca>{num(unicos(base, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(instituciones)} instituciones</Marca>. Beneficiaron a <Marca>{num(sumar(beneficiados, (b) => b.beneficiados))} estudiantes</Marca> y financiaron a <Marca>{num(estudiantes.length)} estudiantes técnicos</Marca>{f.anios.length > 0 && <> que ingresaron en {f.anios.join(', ')}</>}
               .

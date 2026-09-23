@@ -72,7 +72,7 @@ export function Estudiantes() {
     { clave: 'institucion', titulo: 'Institución', opciones: u((e) => e.institucion), valor: sel.institucion, onChange: set('institucion') },
   ]
   const anioFiltro = { anios: cohortes.map(Number), valor: f.anios, onChange: f.setAnios }
-  const etiquetas = etiquetasDe(anioFiltro, grupos)
+  const etiquetas = etiquetasDe(anioFiltro, grupos, 'Año de ingreso')
   const limpiar = () => {
     setSel(VACIO)
     f.limpiar()
@@ -82,7 +82,7 @@ export function Estudiantes() {
     <>
       <PlacaCabecera placa={placa} titulo="Cada punto, un estudiante" texto="Estudiantes técnicos y tecnólogos de Universidad en el Campo cuya formación financia la Gobernación de Caldas. No se muestran nombres." />
 
-      <ConFiltros panel={<PanelFiltros anios={anioFiltro} tituloAnios="Año de ingreso" grupos={grupos} activos={etiquetas.length} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
+      <ConFiltros panel={<PanelFiltros anios={anioFiltro} tituloAnios="Año de ingreso" grupos={grupos} etiquetas={etiquetas} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
           <div>
             <Cafetal cohortes={conteoCohortes} estados={estados} colorDe={colorEstadoEstudiante} seleccionEstado={sel.estado} seleccionCohorte={f.anios.map(String)} alClicEstado={alt('estado')} alClicCohorte={(c) => f.setAnios(alternar(f.anios, Number(c)))} />

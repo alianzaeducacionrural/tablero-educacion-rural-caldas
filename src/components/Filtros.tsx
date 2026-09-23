@@ -21,7 +21,9 @@ export interface FiltroAnios {
 
 export interface Etiqueta {
   clave: string
-  texto: string
+  /** Nombre del filtro (p. ej. «Año») y su valor elegido. */
+  grupo: string
+  valor: string
   quitar: () => void
 }
 
@@ -75,23 +77,49 @@ function ListaOpciones({ titulo, opciones, valor, onChange }: Pick<GrupoFiltro, 
   )
 }
 
-export function PanelFiltros({ anios, tituloAnios = 'Año', grupos, activos, onLimpiar }: { anios?: FiltroAnios; tituloAnios?: string; grupos: GrupoFiltro[]; activos: number; onLimpiar: () => void }) {
+export function PanelFiltros({ anios, tituloAnios = 'Año', grupos, etiquetas, onLimpiar }: { anios?: FiltroAnios; tituloAnios?: string; grupos: GrupoFiltro[]; etiquetas: Etiqueta[]; onLimpiar: () => void }) {
   return (
     <div>
-      <div className="flex items-center justify-between gap-2 pb-2">
-        <h2 className="display flex items-center gap-2 text-2xl" style={{ color: 'var(--ink)' }}>
-          <Icono n="filtro" size={20} />
-          Filtros
-        </h2>
-        {activos > 0 && (
-          <button type="button" onClick={onLimpiar} className="rounded-full px-3 py-1.5 text-sm font-bold text-accentink underline decoration-2 underline-offset-4 hover:bg-wash">
-            Limpiar ({activos})
-          </button>
+      <h2 className="display flex items-center gap-2 pb-3 text-2xl" style={{ color: 'var(--ink)' }}>
+        <Icono n="filtro" size={20} />
+        Filtros
+      </h2>
+
+      {/* Lo aplicado se ve aquí, en la barra: no mueve nada del contenido. */}
+      <section aria-label="Filtros aplicados" className="mb-2 rounded-2xl bg-wash/70 p-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 text-sm font-extrabold" style={{ color: 'var(--ink)' }}>
+            Aplicados
+            {etiquetas.length > 0 && <span className="cota rounded-full bg-main px-2 py-0.5 text-xs font-semibold text-on">{etiquetas.length}</span>}
+          </h3>
+          {etiquetas.length > 0 && (
+            <button type="button" onClick={onLimpiar} className="rounded-full px-2.5 py-1 text-xs font-bold text-accentink underline decoration-2 underline-offset-4 hover:bg-white/70">
+              Quitar todos
+            </button>
+          )}
+        </div>
+        {etiquetas.length === 0 ? (
+          <p className="mt-1.5 text-sm text-ink2">Ninguno: estás viendo todo.</p>
+        ) : (
+          <ul className="mt-2.5 flex flex-wrap gap-1.5">
+            {etiquetas.map((e) => (
+              <li key={e.clave} className="max-w-full">
+                <button type="button" onClick={e.quitar} title={`Quitar ${e.grupo}: ${e.valor}`} aria-label={`Quitar filtro ${e.grupo}: ${e.valor}`} className="group flex max-w-full items-center gap-1.5 rounded-full bg-main py-1 pl-3 pr-2 text-left text-xs text-on">
+                  <span className="min-w-0 truncate">
+                    <span className="opacity-80">{e.grupo} </span>
+                    <span className="font-bold">{e.valor}</span>
+                  </span>
+                  <Icono n="cerrar" size={12} className="shrink-0 opacity-80 group-hover:opacity-100" />
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
-      </div>
+      </section>
+
       {anios && (
         <Plegable titulo={tituloAnios} cuenta={anios.valor.length} abierto>
-          <div role="group" aria-label="Año" className="flex flex-wrap gap-2">
+          <div role="group" aria-label={tituloAnios} className="flex flex-wrap gap-2">
             {anios.anios.map((a) => {
               const on = anios.valor.includes(a)
               return (
@@ -113,7 +141,7 @@ export function PanelFiltros({ anios, tituloAnios = 'Año', grupos, activos, onL
 }
 
 /** Barra lateral fija en escritorio; en el celular se abre como panel a pantalla completa. */
-export function ConFiltros({ panel, etiquetas, onLimpiar, children }: { panel: ReactNode; etiquetas: Etiqueta[]; onLimpiar: () => void; children: ReactNode }) {
+export function ConFiltros({ panel, etiquetas, children }: { panel: ReactNode; etiquetas: Etiqueta[]; onLimpiar?: () => void; children: ReactNode }) {
   const [abierto, setAbierto] = useState(false)
   return (
     <div className="mx-auto max-w-[1500px] px-5 py-8 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start lg:gap-10">
@@ -136,30 +164,15 @@ export function ConFiltros({ panel, etiquetas, onLimpiar, children }: { panel: R
         {panel}
       </aside>
 
-      <div className="mt-2 min-w-0 space-y-14 lg:mt-0 sm:space-y-16">
-        {etiquetas.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2" aria-label="Filtros activos">
-            {etiquetas.map((e) => (
-              <button key={e.clave} type="button" onClick={e.quitar} className="inline-flex items-center gap-1.5 rounded-full bg-main px-3.5 py-1.5 text-sm font-bold text-on" aria-label={`Quitar filtro ${e.texto}`}>
-                {e.texto}
-                <Icono n="cerrar" size={13} />
-              </button>
-            ))}
-            <button type="button" onClick={onLimpiar} className="rounded-full px-3 py-1.5 text-sm font-bold text-accentink underline decoration-2 underline-offset-4 hover:bg-wash">
-              Limpiar todo
-            </button>
-          </div>
-        )}
-        {children}
-      </div>
+      <div className="mt-2 min-w-0 space-y-14 lg:mt-0 sm:space-y-16">{children}</div>
     </div>
   )
 }
 
 /** Etiquetas de los filtros activos (año y cada opción elegida), cada una con su forma de quitarse. */
-export function etiquetasDe(anios: FiltroAnios | undefined, grupos: GrupoFiltro[]): Etiqueta[] {
+export function etiquetasDe(anios: FiltroAnios | undefined, grupos: GrupoFiltro[], tituloAnios = 'Año'): Etiqueta[] {
   const out: Etiqueta[] = []
-  anios?.valor.forEach((a) => out.push({ clave: `anio-${a}`, texto: `Año ${a}`, quitar: () => anios.onChange(anios.valor.filter((x) => x !== a)) }))
-  grupos.forEach((g) => g.valor.forEach((v) => out.push({ clave: `${g.clave}-${v}`, texto: `${g.titulo}: ${v}`, quitar: () => g.onChange(g.valor.filter((x) => x !== v)) })))
+  anios?.valor.forEach((a) => out.push({ clave: `anio-${a}`, grupo: tituloAnios, valor: String(a), quitar: () => anios.onChange(anios.valor.filter((x) => x !== a)) }))
+  grupos.forEach((g) => g.valor.forEach((v) => out.push({ clave: `${g.clave}-${v}`, grupo: g.titulo, valor: v, quitar: () => g.onChange(g.valor.filter((x) => x !== v)) })))
   return out
 }

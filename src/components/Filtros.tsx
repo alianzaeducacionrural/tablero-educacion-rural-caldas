@@ -75,7 +75,7 @@ function ListaOpciones({ titulo, opciones, valor, onChange }: Pick<GrupoFiltro, 
   )
 }
 
-export function PanelFiltros({ anios, grupos, activos, onLimpiar }: { anios?: FiltroAnios; grupos: GrupoFiltro[]; activos: number; onLimpiar: () => void }) {
+export function PanelFiltros({ anios, tituloAnios = 'Año', grupos, activos, onLimpiar }: { anios?: FiltroAnios; tituloAnios?: string; grupos: GrupoFiltro[]; activos: number; onLimpiar: () => void }) {
   return (
     <div>
       <div className="flex items-center justify-between gap-2 pb-2">
@@ -90,7 +90,7 @@ export function PanelFiltros({ anios, grupos, activos, onLimpiar }: { anios?: Fi
         )}
       </div>
       {anios && (
-        <Plegable titulo="Año" cuenta={anios.valor.length} abierto>
+        <Plegable titulo={tituloAnios} cuenta={anios.valor.length} abierto>
           <div role="group" aria-label="Año" className="flex flex-wrap gap-2">
             {anios.anios.map((a) => {
               const on = anios.valor.includes(a)

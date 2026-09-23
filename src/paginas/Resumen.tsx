@@ -22,7 +22,8 @@ export function Resumen() {
   const baseMunicipios = useMemo(() => datos.base.filter((x) => pasa({ anios: f.anios, municipios: [] }, x.anio, x.municipio)), [datos, f.anios])
   const baseAnios = useMemo(() => datos.base.filter((x) => pasa({ anios: [], municipios: f.municipios }, x.anio, x.municipio)), [datos, f.municipios])
   const beneficiados = useMemo(() => datos.beneficiados.filter((b) => pasa(f, b.anio, b.municipio)), [datos, f])
-  const estudiantes = useMemo(() => datos.estudiantes.filter((e) => /gobernaci/i.test(e.financiador) && pasa(f, null, e.municipio)), [datos, f])
+  // Un estudiante pertenece al año en que ingresó (su cohorte): así el filtro de año también lo mueve.
+  const estudiantes = useMemo(() => datos.estudiantes.filter((e) => /gobernaci/i.test(e.financiador) && pasa(f, e.anioIngreso, e.municipio)), [datos, f])
 
   const total = sumar(base, (x) => x.valor)
   const valorDe = (re: RegExp) => sumar(base.filter((x) => re.test(x.aportante)), (x) => x.valor)
@@ -110,8 +111,8 @@ export function Resumen() {
           <div className="space-y-6">
             <Cifra tam="md" valor={cop(total)} etiqueta={`invertidos en educación rural${rango ? `, ${rango}` : ''}`} />
             <p className="text-lg leading-relaxed text-ink2">
-              Llegó a <Marca>{num(unicos(base, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(instituciones)} instituciones</Marca>. Beneficiaron a <Marca>{num(sumar(beneficiados, (b) => b.beneficiados))} estudiantes</Marca> y financiaron a <Marca>{num(estudiantes.length)} estudiantes técnicos</Marca>
-              {estudiantes.length > 0 && <>, de los que {pct(estudiantes.filter((e) => /^graduado$/i.test(e.estado)).length / estudiantes.length)} ya se graduó</>}.
+              Llegó a <Marca>{num(unicos(base, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(instituciones)} instituciones</Marca>. Beneficiaron a <Marca>{num(sumar(beneficiados, (b) => b.beneficiados))} estudiantes</Marca> y financiaron a <Marca>{num(estudiantes.length)} estudiantes técnicos</Marca>{f.anios.length > 0 && <> que ingresaron en {f.anios.join(', ')}</>}
+              .
             </p>
             <div>
               <div className="flex h-5 overflow-hidden rounded-full ring-2 ring-white" role="img" aria-label={`Departamento de Caldas ${pct(total ? depto / total : 0)}, Comité de Cafeteros ${pct(total ? comite / total : 0)}`}>

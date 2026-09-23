@@ -11,12 +11,12 @@ import { columnas, dona, pastel } from '../lib/graficos'
 import type { Estudiante } from '../lib/tipos'
 import { pasa, useTablero } from '../lib/usarFiltrado'
 
-type Local = 'cohorte' | 'universidad' | 'programa' | 'estado' | 'institucion'
-type Dim = Local | 'municipio'
+type Local = 'universidad' | 'programa' | 'estado' | 'institucion'
+type Dim = Local | 'municipio' | 'anio'
 const placa = PLACAS.estudiantes
 const ORDEN_ESTADO = ['Graduado', 'Activo', 'Pendiente de grado', 'Desertor']
 const ordenEstado = (e: string) => (ORDEN_ESTADO.indexOf(e) < 0 ? 99 : ORDEN_ESTADO.indexOf(e))
-const VACIO: Record<Local, string[]> = { cohorte: [], universidad: [], programa: [], estado: [], institucion: [] }
+const VACIO: Record<Local, string[]> = { universidad: [], programa: [], estado: [], institucion: [] }
 
 export function Estudiantes() {
   const { datos, f } = useTablero()
@@ -25,11 +25,15 @@ export function Estudiantes() {
   // Solo los financiados por la Gobernación. Sin nombres: el tablero es público.
   const filas = useMemo(() => datos.estudiantes.filter((e) => /gobernaci/i.test(e.financiador)), [datos])
 
+  // El año elegido (filtro global) es el año de ingreso de cada estudiante: su cohorte.
   const vistas = useMemo(() => {
-    const valorDe: Record<Local, (e: Estudiante) => string> = { cohorte: (e) => String(e.anioIngreso), universidad: (e) => e.universidad, programa: (e) => e.programa, estado: (e) => e.estado, institucion: (e) => e.institucion }
-    const ok = (e: Estudiante, omitir?: Dim) => (omitir === 'municipio' || pasa(f, null, e.municipio)) && (Object.keys(valorDe) as Local[]).every((d) => d === omitir || !sel[d].length || sel[d].includes(valorDe[d](e)))
+    const valorDe: Record<Local, (e: Estudiante) => string> = { universidad: (e) => e.universidad, programa: (e) => e.programa, estado: (e) => e.estado, institucion: (e) => e.institucion }
+    const ok = (e: Estudiante, omitir?: Dim) =>
+      (omitir === 'anio' || pasa({ anios: f.anios, municipios: [] }, e.anioIngreso, null)) &&
+      (omitir === 'municipio' || pasa(f, null, e.municipio)) &&
+      (Object.keys(valorDe) as Local[]).every((d) => d === omitir || !sel[d].length || sel[d].includes(valorDe[d](e)))
     const de = (omitir?: Dim) => filas.filter((e) => ok(e, omitir))
-    return { todas: de(), cohorte: de('cohorte'), universidad: de('universidad'), programa: de('programa'), estado: de('estado'), municipio: de('municipio') }
+    return { todas: de(), anio: de('anio'), universidad: de('universidad'), programa: de('programa'), estado: de('estado'), municipio: de('municipio') }
   }, [filas, f, sel])
 
   const alt = (d: Local) => (n: string) => setSel((s) => ({ ...s, [d]: alternar(s[d], n) }))
@@ -41,7 +45,7 @@ export function Estudiantes() {
 
   const estados = useMemo(() => [...new Set(filas.map((e) => e.estado))].sort((a, b) => ordenEstado(a) - ordenEstado(b)), [filas])
   const cohortes = useMemo(() => [...new Set(filas.map((e) => String(e.anioIngreso)))].sort(), [filas])
-  const conteoCohortes = useMemo(() => cohortes.map((c) => ({ cohorte: c, conteos: Object.fromEntries(estados.map((e) => [e, vistas.cohorte.filter((x) => String(x.anioIngreso) === c && x.estado === e).length])) })), [cohortes, estados, vistas.cohorte])
+  const conteoCohortes = useMemo(() => cohortes.map((c) => ({ cohorte: c, conteos: Object.fromEntries(estados.map((e) => [e, vistas.anio.filter((x) => String(x.anioIngreso) === c && x.estado === e).length])) })), [cohortes, estados, vistas.anio])
   const pEstado = agrupar(t, (e) => e.estado, () => 1).sort((a, b) => ordenEstado(a.nombre) - ordenEstado(b.nombre))
 
   const porMuni = useMemo(() => agrupar(vistas.municipio, (e) => e.municipio, () => 1), [vistas.municipio])
@@ -55,34 +59,34 @@ export function Estudiantes() {
   const opcionGenero = useMemo(() => dona({ partes: pGenero.map((g, i) => ({ nombre: g.nombre, valor: g.valor, color: coloresGenero[i % coloresGenero.length] })), centro: num(t.length), sub: 'estudiantes', fmt: num }), [pGenero, t.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cohortes: cada año de ingreso, según su estado hoy
-  const opcionCohortes = useMemo(() => columnas({ categorias: cohortes, series: estados.map((e) => ({ nombre: e, color: colorEstadoEstudiante(e), datos: cohortes.map((c) => vistas.cohorte.filter((x) => String(x.anioIngreso) === c && x.estado === e).length) })), fmt: num, apilada: true, seleccion: sel.cohorte }), [cohortes, estados, vistas.cohorte, sel.cohorte])
+  const opcionCohortes = useMemo(() => columnas({ categorias: cohortes, series: estados.map((e) => ({ nombre: e, color: colorEstadoEstudiante(e), datos: cohortes.map((c) => vistas.anio.filter((x) => String(x.anioIngreso) === c && x.estado === e).length) })), fmt: num, apilada: true, seleccion: f.anios.map(String) }), [cohortes, estados, vistas.anio, f.anios])
   const aniosGrad = [...new Set(t.map((e) => e.anioGraduacion).filter((a): a is number => a !== null))].sort()
   const opcionGrad = useMemo(() => columnas({ categorias: aniosGrad.map(String), series: [{ nombre: 'Graduados', color: placa.main, datos: aniosGrad.map((a) => t.filter((e) => e.anioGraduacion === a).length) }], fmt: num }), [aniosGrad, t]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const u = (c: (e: Estudiante) => string) => [...unicos(filas, c)]
   const grupos: GrupoFiltro[] = [
-    { clave: 'cohorte', titulo: 'Cohorte', opciones: u((e) => String(e.anioIngreso)), valor: sel.cohorte, onChange: set('cohorte'), abierto: true },
     { clave: 'universidad', titulo: 'Universidad', opciones: u((e) => e.universidad), valor: sel.universidad, onChange: set('universidad') },
     { clave: 'programa', titulo: 'Programa', opciones: u((e) => e.programa), valor: sel.programa, onChange: set('programa') },
     { clave: 'estado', titulo: 'Estado', opciones: u((e) => e.estado), valor: sel.estado, onChange: set('estado') },
     { clave: 'municipio', titulo: 'Municipio', opciones: u((e) => e.municipio).sort(alfa), valor: f.municipios, onChange: f.setMunicipios },
     { clave: 'institucion', titulo: 'Institución', opciones: u((e) => e.institucion), valor: sel.institucion, onChange: set('institucion') },
   ]
-  const etiquetas = etiquetasDe(undefined, grupos)
+  const anioFiltro = { anios: cohortes.map(Number), valor: f.anios, onChange: f.setAnios }
+  const etiquetas = etiquetasDe(anioFiltro, grupos)
   const limpiar = () => {
     setSel(VACIO)
-    f.setMunicipios([])
+    f.limpiar()
   }
 
   return (
     <>
       <PlacaCabecera placa={placa} titulo="Cada punto, un estudiante" texto="Estudiantes técnicos y tecnólogos de Universidad en el Campo cuya formación financia la Gobernación de Caldas. No se muestran nombres." />
 
-      <ConFiltros panel={<PanelFiltros grupos={grupos} activos={etiquetas.length} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
+      <ConFiltros panel={<PanelFiltros anios={anioFiltro} tituloAnios="Año de ingreso" grupos={grupos} activos={etiquetas.length} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
           <div>
-            <Cafetal cohortes={conteoCohortes} estados={estados} colorDe={colorEstadoEstudiante} seleccionEstado={sel.estado} seleccionCohorte={sel.cohorte} alClicEstado={alt('estado')} alClicCohorte={alt('cohorte')} />
-            <p className="mt-5 max-w-xl text-sm text-ink2">Cada punto es un estudiante, agrupado por el año en que ingresó y pintado por su estado hoy. Toca un color o un año para filtrar. El filtro de año de otras láminas no aplica aquí: usa la cohorte.</p>
+            <Cafetal cohortes={conteoCohortes} estados={estados} colorDe={colorEstadoEstudiante} seleccionEstado={sel.estado} seleccionCohorte={f.anios.map(String)} alClicEstado={alt('estado')} alClicCohorte={(c) => f.setAnios(alternar(f.anios, Number(c)))} />
+            <p className="mt-5 max-w-xl text-sm text-ink2">Cada punto es un estudiante, agrupado por el año en que ingresó y pintado por su estado hoy. Toca un color o un año para filtrar. El año es el de ingreso, y es el mismo filtro de año del resto del tablero.</p>
           </div>
           <div className="space-y-6">
             <Cifra tam="lg" valor={num(t.length)} etiqueta="estudiantes financiados por la Gobernación" />
@@ -120,7 +124,7 @@ export function Estudiantes() {
               <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
                 Estado de cada cohorte
               </h3>
-              <Grafico etiqueta="Estudiantes por cohorte y estado" alto={340} alClic={alt('cohorte')} opcion={opcionCohortes} />
+              <Grafico etiqueta="Estudiantes por cohorte y estado" alto={340} alClic={(c) => f.setAnios(alternar(f.anios, Number(c)))} opcion={opcionCohortes} />
             </div>
             <div>
               <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>

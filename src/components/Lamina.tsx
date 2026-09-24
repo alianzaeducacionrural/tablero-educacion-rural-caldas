@@ -1,6 +1,7 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import caldas from '../data/caldas.json'
 import { TINTA, type Placa } from '../lib/colores'
+import { descargarExcel, type HojaExcel } from '../lib/excel'
 import { inicioBanda, mapa } from '../lib/graficos'
 import { pct } from '../lib/formato'
 import { Grafico } from './Grafico'
@@ -47,6 +48,30 @@ export function PlacaCabecera({ placa, titulo, texto, children }: { placa: Placa
         {children && <div className="flex flex-col items-start gap-3 lg:items-end">{children}</div>}
       </div>
     </section>
+  )
+}
+
+/** El icono verde de Excel: no es el logo oficial, pero se reconoce al instante. */
+function IconoExcel({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <rect width="24" height="24" rx="6" fill="#1D6F42" />
+      <path d="M7.2 7.2l3.5 4.8-3.5 4.8h2.2l2.4-3.35 2.4 3.35h2.2l-3.5-4.8 3.5-4.8h-2.2l-2.4 3.35-2.4-3.35z" fill="#ffffff" />
+    </svg>
+  )
+}
+
+/** Botón bien visible para bajar toda la pestaña como un Excel, una hoja por sección. */
+export function BotonExcel({ archivo, hojas }: { archivo: string; hojas: HojaExcel[] }) {
+  return (
+    <button
+      type="button"
+      onClick={() => descargarExcel(archivo, hojas)}
+      className="inline-flex items-center gap-2.5 rounded-full bg-white py-2.5 pl-3 pr-5 font-extrabold text-ink shadow-lg shadow-black/15 ring-1 ring-black/5 transition-transform hover:-translate-y-0.5"
+    >
+      <IconoExcel />
+      Descargar Excel
+    </button>
   )
 }
 

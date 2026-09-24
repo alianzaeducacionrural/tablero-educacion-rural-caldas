@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
 import { Grafico } from '../components/Grafico'
-import { Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAniosDual } from '../components/Lamina'
+import { BotonExcel, Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAniosDual } from '../components/Lamina'
 import { RankingBarras } from '../components/Ranking'
 import { agrupar, agruparDoble, alfa, sumar, unicos } from '../lib/agregar'
 import { PLACAS, colorAportante, colorEstadoActividad } from '../lib/colores'
@@ -108,9 +108,28 @@ export function Programa({ programa }: { programa: Prog }) {
   const tablaDoble = (col: string, ds: { nombre: string; valor: number; cantidad: number }[], archivo: string) => ({ archivo, columnas: [{ clave: 'nombre', titulo: col }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const }, { clave: 'cantidad', titulo: 'Actividades', tipo: 'cantidad' as const }], filas: ds })
   const coloresGrupo = Object.fromEntries(dobles.grupo.map((g, i) => [g.nombre, placa.apoyo[i % placa.apoyo.length]]))
 
+  const tablaGrupoT = tablaDoble(cfg.grupo, dobles.grupo, `${programa}-${cfg.grupo.toLowerCase()}`)
+  const tablaActividadT = tablaDoble('Actividad', dobles.actividad, `${programa}-actividades`)
+  const tablaMunicipioT = tablaDoble('Municipio', porMuni, `${programa}-municipios`)
+  const tablaInstitucionT = tablaDoble('Institución', dobles.institucion, `${programa}-instituciones`)
+  const tablaEstadoT = tablaDoble('Estado', dobles.estado, `${programa}-estados`)
+  const tablaAportanteT = tablaDoble('Aportante', pAportante.map((p) => ({ ...p, cantidad: sumar(t.filter((x) => x.aportante === p.nombre), (x) => x.cantidad) })), `${programa}-aportantes`)
+  const tablaAnioT = { archivo: `${programa}-por-anio`, columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const }, { clave: 'cantidad', titulo: 'Actividades', tipo: 'cantidad' as const }], filas: filasAnio.map((a) => ({ anio: String(a.anio), valor: a.valor, cantidad: a.cantidad })) }
+  const hojasExcel = [
+    { nombre: cfg.grupo, tabla: tablaGrupoT },
+    { nombre: 'Actividad', tabla: tablaActividadT },
+    { nombre: 'Municipio', tabla: tablaMunicipioT },
+    { nombre: 'Institución', tabla: tablaInstitucionT },
+    { nombre: 'Estado', tabla: tablaEstadoT },
+    { nombre: 'Aportante', tabla: tablaAportanteT },
+    { nombre: 'Año', tabla: tablaAnioT },
+  ]
+
   return (
     <>
-      <PlacaCabecera placa={placa} titulo={cfg.nombre} texto={`${placa.frase}. En cada visual verás el valor invertido y la cantidad de actividades, juntos. Toca el mapa o una barra para filtrar.`} />
+      <PlacaCabecera placa={placa} titulo={cfg.nombre} texto={`${placa.frase}. En cada visual verás el valor invertido y la cantidad de actividades, juntos. Toca el mapa o una barra para filtrar.`}>
+        <BotonExcel archivo={`${programa}-educacion-rural-caldas`} hojas={hojasExcel} />
+      </PlacaCabecera>
 
       <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
@@ -127,7 +146,7 @@ export function Programa({ programa }: { programa: Prog }) {
           </div>
         </div>
 
-        <Seccion titulo={`${cfg.grupos} y actividades`} nota="Cada barra es el valor invertido; a la derecha, el valor completo y la cantidad de actividades. Toca una para filtrar." tono="lavado" tabla={tablaDoble('Actividad', dobles.actividad, `${programa}-actividades`)}>
+        <Seccion titulo={`${cfg.grupos} y actividades`} nota="Cada barra es el valor invertido; a la derecha, el valor completo y la cantidad de actividades. Toca una para filtrar." tono="lavado" tabla={tablaActividadT}>
           <div className="space-y-10">
             <div>
               <h3 className="display mb-3 text-2xl" style={{ color: 'var(--ink)' }}>
@@ -145,12 +164,12 @@ export function Programa({ programa }: { programa: Prog }) {
         </Seccion>
 
         <div className="grid items-start gap-12 2xl:grid-cols-2">
-          <Seccion titulo="Municipios" nota="Los que más recibieron." tabla={tablaDoble('Municipio', porMuni, `${programa}-municipios`)}>
+          <Seccion titulo="Municipios" nota="Los que más recibieron." tabla={tablaMunicipioT}>
             <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
               <RankingBarras items={porMuni} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
             </div>
           </Seccion>
-          <Seccion titulo="Instituciones" nota="Las que más recibieron." tabla={tablaDoble('Institución', dobles.institucion, `${programa}-instituciones`)}>
+          <Seccion titulo="Instituciones" nota="Las que más recibieron." tabla={tablaInstitucionT}>
             <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
               <RankingBarras items={dobles.institucion} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.institucion} onClic={alt('institucion')} limite={dobles.institucion.length} />
             </div>
@@ -158,15 +177,15 @@ export function Programa({ programa }: { programa: Prog }) {
         </div>
 
         <div className="grid items-start gap-12 2xl:grid-cols-2">
-          <Seccion titulo="Estado de la actividad" nota="Lo que está dentro del convenio frente a lo que se hizo además." tabla={tablaDoble('Estado', dobles.estado, `${programa}-estados`)}>
+          <Seccion titulo="Estado de la actividad" nota="Lo que está dentro del convenio frente a lo que se hizo además." tabla={tablaEstadoT}>
             <RankingBarras items={dobles.estado.map((e) => ({ ...e, color: colorEstadoActividad(e.nombre, programa) }))} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.estado} onClic={alt('estado')} />
           </Seccion>
-          <Seccion titulo="Quién aportó" nota="Distribución del valor entre aportantes." tabla={tablaDoble('Aportante', pAportante.map((p) => ({ ...p, cantidad: sumar(t.filter((x) => x.aportante === p.nombre), (x) => x.cantidad) })), `${programa}-aportantes`)}>
+          <Seccion titulo="Quién aportó" nota="Distribución del valor entre aportantes." tabla={tablaAportanteT}>
             <Grafico etiqueta="Distribución del valor por aportante" alto={300} alClic={alt('aportante')} opcion={opcionAportante} />
           </Seccion>
         </div>
 
-        <Seccion titulo="Año por año" nota="Valor y actividades, año contra año, por aportante. Toca un año para filtrar." tono="lavado" tabla={{ archivo: `${programa}-por-anio`, columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' }, { clave: 'cantidad', titulo: 'Actividades', tipo: 'cantidad' }], filas: filasAnio.map((a) => ({ anio: String(a.anio), valor: a.valor, cantidad: a.cantidad })) }}>
+        <Seccion titulo="Año por año" nota="Valor y actividades, año contra año, por aportante. Toca un año para filtrar." tono="lavado" tabla={tablaAnioT}>
           <div className="space-y-8">
             <div className="grid items-start gap-8 xl:grid-cols-2">
               <div>

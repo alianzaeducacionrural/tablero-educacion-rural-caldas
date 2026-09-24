@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Segmentado } from '../components/controles'
 import { Grafico } from '../components/Grafico'
 import { Icono } from '../components/Icono'
-import { Aviso, Cifra, Contenido, Marca, PlacaCabecera, Posiciones, Progreso, Seccion } from '../components/Lamina'
+import { Aviso, BotonExcel, Cifra, Contenido, Marca, PlacaCabecera, Posiciones, Progreso, Seccion } from '../components/Lamina'
 import { sumar } from '../lib/agregar'
 import { PLACAS, colorAportante } from '../lib/colores'
 import { cant, cop, num, pct } from '../lib/formato'
@@ -81,9 +81,30 @@ export function Cumplimiento() {
   const totalComite = sumar(filasCofin, (f) => f.partes[1].valor)
   const opcionPastelCofin = useMemo(() => pastel({ partes: [{ nombre: 'Departamento de Caldas', valor: totalDepto, color: colorAportante('Departamento de Caldas') }, { nombre: 'Comité de Cafeteros', valor: totalComite, color: colorAportante('Comité de Cafeteros') }], fmt: cop, mostrarValor: true }), [totalDepto, totalComite])
 
+  const tablaMetasT = {
+    archivo: `metas-${programa}-${vigencia}`,
+    columnas: [
+      { clave: 'grupo', titulo: cfg.grupo },
+      { clave: 'actividad', titulo: 'Actividad' },
+      { clave: 'meta', titulo: 'Meta', tipo: 'cantidad' as const },
+      { clave: 'ejecutado', titulo: 'Ejecutado', tipo: 'cantidad' as const },
+      { clave: 'faltante', titulo: 'Faltante', tipo: 'cantidad' as const },
+      { clave: 'adicional', titulo: 'Adicional', tipo: 'cantidad' as const },
+      { clave: 'valorMeta', titulo: 'Valor meta', tipo: 'moneda' as const },
+      { clave: 'valorEjecutado', titulo: 'Valor ejecutado', tipo: 'moneda' as const },
+    ],
+    filas: metas.map((m) => ({ grupo: m.grupo, actividad: m.actividad, meta: m.meta, ejecutado: m.ejecutado, faltante: m.faltante, adicional: m.adicional, valorMeta: m.valorMeta, valorEjecutado: m.valorEjecutado })),
+  }
+  const tablaCofinT = { archivo: 'cofinanciacion', columnas: [{ clave: 'g', titulo: cfg.grupo }, { clave: 'd', titulo: 'Departamento de Caldas', tipo: 'moneda' as const }, { clave: 'c', titulo: 'Comité de Cafeteros', tipo: 'moneda' as const }], filas: filasCofin.map((f) => ({ g: f.nombre, d: f.partes[0].valor, c: f.partes[1].valor })) }
+  const hojasExcel = [
+    { nombre: 'Metas y ejecutado', tabla: tablaMetasT },
+    { nombre: 'Cofinanciación', tabla: tablaCofinT },
+  ]
+
   return (
     <>
       <PlacaCabecera placa={placa} titulo="Lo prometido frente a lo hecho" texto="La meta del convenio contra lo ejecutado, actividad por actividad. Las metas y lo ejecutado se actualizan desde el panel de administración.">
+        {metas.length > 0 && <BotonExcel archivo={`cumplimiento-${programa}-${vigencia}`} hojas={hojasExcel} />}
         <Segmentado sobreCampo etiqueta="Programa" valor={programa} onChange={(p) => { setPrograma(p); setVigenciaSel(null) }} opciones={[{ id: 'mf', texto: PROGRAMAS.mf.nombre }, { id: 'uc', texto: PROGRAMAS.uc.nombre }]} />
         {vigencias.length > 0 && (
           <label className="flex items-center gap-2 text-sm font-bold">
@@ -151,7 +172,7 @@ export function Cumplimiento() {
                 titulo="Cofinanciación"
                 nota="Cuánto aportan el Departamento de Caldas y el Comité de Cafeteros a cada proceso."
                 tono="lavado"
-                tabla={{ archivo: 'cofinanciacion', columnas: [{ clave: 'g', titulo: cfg.grupo }, { clave: 'd', titulo: 'Departamento de Caldas', tipo: 'moneda' }, { clave: 'c', titulo: 'Comité de Cafeteros', tipo: 'moneda' }], filas: filasCofin.map((f) => ({ g: f.nombre, d: f.partes[0].valor, c: f.partes[1].valor })) }}
+                tabla={tablaCofinT}
               >
                 <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
                   <Grafico etiqueta="Cofinanciación del Departamento y del Comité por proceso" alto={Math.max(220, filasCofin.length * 60 + 60)} opcion={opcionCofin} />

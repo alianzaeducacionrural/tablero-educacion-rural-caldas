@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
 import { Grafico } from '../components/Grafico'
 import { Icono } from '../components/Icono'
-import { Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAnios } from '../components/Lamina'
+import { BotonExcel, Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAnios } from '../components/Lamina'
 import { RankingBarras } from '../components/Ranking'
 import { alfa, sumar, unicos } from '../lib/agregar'
 import { PLACAS } from '../lib/colores'
@@ -111,9 +111,26 @@ export function Cobertura() {
     setInstitucionSel([])
   }
 
+  const tablaAnioT = { archivo: 'beneficiados-por-anio', columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'n', titulo: 'Beneficiados', tipo: 'numero' as const }], filas: anios.map((a, i) => ({ anio: String(a), n: porAnio[i] })) }
+  const tablaMunicipioT = tablaPares('Municipio', porMuni, 'beneficiados-por-municipio')
+  const tablaInstitucionT = tablaPares('Institución', porInst, 'beneficiados-por-institucion')
+  const tablaCompletaT = {
+    archivo: 'beneficiados-lista-completa',
+    columnas: [{ clave: 'municipio', titulo: 'Municipio' }, { clave: 'institucion', titulo: 'Institución' }, { clave: 'sede', titulo: 'Sede' }, { clave: 'beneficiados', titulo: 'Beneficiados', tipo: 'numero' as const }],
+    filas: arbolTabla.flatMap((m) => m.hijos.flatMap((i) => i.hijos.map((s) => ({ municipio: m.nombre, institucion: i.nombre, sede: s.nombre, beneficiados: s.total })))),
+  }
+  const hojasExcel = [
+    { nombre: 'Año', tabla: tablaAnioT },
+    { nombre: 'Municipio', tabla: tablaMunicipioT },
+    { nombre: 'Institución', tabla: tablaInstitucionT },
+    { nombre: 'Lista completa', tabla: tablaCompletaT },
+  ]
+
   return (
     <>
-      <PlacaCabecera placa={placa} titulo="Hasta dónde llega" texto="Estudiantes beneficiados por Modelos Educativos Flexibles, municipio por municipio, hasta cada sede. Es la suma de los años elegidos: quien se atendió en varios años puede contarse más de una vez." />
+      <PlacaCabecera placa={placa} titulo="Hasta dónde llega" texto="Estudiantes beneficiados por Modelos Educativos Flexibles, municipio por municipio, hasta cada sede. Es la suma de los años elegidos: quien se atendió en varios años puede contarse más de una vez.">
+        <BotonExcel archivo="cobertura-educacion-rural-caldas" hojas={hojasExcel} />
+      </PlacaCabecera>
 
       <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
@@ -126,7 +143,7 @@ export function Cobertura() {
           </div>
         </div>
 
-        <Seccion titulo="Año por año" nota="Beneficiados de cada año y su cambio frente al anterior. Toca un año para filtrar." tono="lavado" tabla={{ archivo: 'beneficiados-por-anio', columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'n', titulo: 'Beneficiados', tipo: 'numero' }], filas: anios.map((a, i) => ({ anio: String(a), n: porAnio[i] })) }}>
+        <Seccion titulo="Año por año" nota="Beneficiados de cada año y su cambio frente al anterior. Toca un año para filtrar." tono="lavado" tabla={tablaAnioT}>
           <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
             <Grafico etiqueta="Estudiantes beneficiados por año" alto={320} alClic={(n) => f.setAnios(alternar(f.anios, Number(n)))} opcion={opcionAnios} />
             <TablaAnios filas={anios.map((a, i) => ({ anio: a, valores: [porAnio[i]] }))} series={[{ nombre: 'Beneficiados', color: placa.main }]} fmt={num} nota="El año más reciente puede estar incompleto si su vigencia sigue en curso." />
@@ -134,12 +151,12 @@ export function Cobertura() {
         </Seccion>
 
         <div className="grid items-start gap-12 2xl:grid-cols-2">
-          <Seccion titulo="Municipios" nota="Beneficiados y sedes atendidas. Toca uno para filtrar." tabla={tablaPares('Municipio', porMuni, 'beneficiados-por-municipio')}>
+          <Seccion titulo="Municipios" nota="Beneficiados y sedes atendidas. Toca uno para filtrar." tabla={tablaMunicipioT}>
             <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
               <RankingBarras items={porMuni} fmtValor={num} fmtCantidad={(n) => `${num(n)} sedes`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
             </div>
           </Seccion>
-          <Seccion titulo="Instituciones" nota="Beneficiados y sedes de cada institución." tabla={tablaPares('Institución', porInst, 'beneficiados-por-institucion')}>
+          <Seccion titulo="Instituciones" nota="Beneficiados y sedes de cada institución." tabla={tablaInstitucionT}>
             <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
               <RankingBarras items={porInst} fmtValor={num} fmtCantidad={(n) => `${num(n)} sedes`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} limite={porInst.length} />
             </div>

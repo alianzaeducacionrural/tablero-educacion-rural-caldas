@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
 import { Grafico } from '../components/Grafico'
-import { Cifra, MapaCaldas, Marca, PlacaCabecera, Posiciones, Seccion } from '../components/Lamina'
+import { BotonExcel, Cifra, MapaCaldas, Marca, PlacaCabecera, Posiciones, Seccion } from '../components/Lamina'
 import { agrupar, alfa, unicos } from '../lib/agregar'
 import { PLACAS, colorEstadoEstudiante } from '../lib/colores'
 import { alternar } from '../lib/filtros'
@@ -106,10 +106,38 @@ export function Estudiantes() {
     columnas: [{ clave: 'nombre', titulo: col }, { clave: 'gob', titulo: 'Gobernación de Caldas', tipo: 'numero' as const }, { clave: 'otros', titulo: 'Otros aliados', tipo: 'numero' as const }, { clave: 'total', titulo: 'Total', tipo: 'numero' as const }],
     filas: filas.map((x) => ({ nombre: x.nombre, gob: x.gob, otros: x.otros, total: x.gob + x.otros })),
   })
+  const tablaMunicipioT = { archivo: 'estudiantes-por-municipio', columnas: [{ clave: 'nombre', titulo: 'Municipio' }, { clave: 'valor', titulo: 'Estudiantes', tipo: 'numero' as const }], filas: porMuni.map((p) => ({ nombre: p.nombre, valor: p.valor })) }
+  const tablaUniT = tablaAportante('Universidad', pUni, 'estudiantes-por-universidad')
+  const tablaProgT = tablaAportante('Programa', pProg, 'estudiantes-por-programa')
+  const tablaGeneroT = { archivo: 'estudiantes-por-genero', columnas: [{ clave: 'nombre', titulo: 'Género' }, { clave: 'valor', titulo: 'Estudiantes', tipo: 'numero' as const }], filas: pGenero.map((p) => ({ nombre: p.nombre, valor: p.valor })) }
+  const tablaCohorteT = { archivo: 'estudiantes-por-cohorte-y-estado', columnas: [{ clave: 'cohorte', titulo: 'Año de ingreso' }, ...estados.map((e) => ({ clave: e, titulo: e, tipo: 'numero' as const }))], filas: cohortes.map((c) => Object.fromEntries([['cohorte', c], ...estados.map((e) => [e, vistas.anio.filter((x) => String(x.anioIngreso) === c && x.estado === e).length])])) }
+  const tablaGradT = { archivo: 'graduados-por-anio', columnas: [{ clave: 'anio', titulo: 'Año de grado' }, { clave: 'valor', titulo: 'Graduados', tipo: 'numero' as const }], filas: aniosGrad.map((a) => ({ anio: String(a), valor: vistas.anio.filter((e) => e.anioGraduacion === a).length })) }
+  const tablaResumenT = {
+    archivo: 'resumen',
+    columnas: [{ clave: 'indicador', titulo: 'Indicador' }, { clave: 'valor', titulo: 'Valor', tipo: 'numero' as const }],
+    filas: [
+      { indicador: 'Estudiantes técnicos profesionales', valor: t.length },
+      { indicador: 'Financiados por la Gobernación de Caldas', valor: gobTotal },
+      { indicador: 'Financiados por otros aliados', valor: t.length - gobTotal },
+      { indicador: 'Graduados', valor: graduados },
+      { indicador: 'Desertores', valor: desertores },
+    ],
+  }
+  const hojasExcel = [
+    { nombre: 'Resumen', tabla: tablaResumenT },
+    { nombre: 'Municipio', tabla: tablaMunicipioT },
+    { nombre: 'Universidad', tabla: tablaUniT },
+    { nombre: 'Programa', tabla: tablaProgT },
+    { nombre: 'Género', tabla: tablaGeneroT },
+    { nombre: 'Cohorte y estado', tabla: tablaCohorteT },
+    { nombre: 'Graduados por año', tabla: tablaGradT },
+  ]
 
   return (
     <>
-      <PlacaCabecera placa={placa} titulo="Técnicos Profesionales" texto="Estudiantes técnicos profesionales de Universidad en el Campo, en los municipios rurales de Caldas. No se muestran nombres." />
+      <PlacaCabecera placa={placa} titulo="Técnicos Profesionales" texto="Estudiantes técnicos profesionales de Universidad en el Campo, en los municipios rurales de Caldas. No se muestran nombres.">
+        <BotonExcel archivo="tecnicos-profesionales-educacion-rural-caldas" hojas={hojasExcel} />
+      </PlacaCabecera>
 
       <ConFiltros panel={<PanelFiltros anios={anioFiltro} tituloAnios="Año de ingreso" grupos={grupos} etiquetas={etiquetas} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
@@ -130,19 +158,19 @@ export function Estudiantes() {
         </div>
 
         <div className="grid items-start gap-12 2xl:grid-cols-2">
-          <Seccion titulo="¿De dónde son?" nota="Estudiantes por municipio. Toca uno para filtrar." tabla={{ archivo: 'estudiantes-por-municipio', columnas: [{ clave: 'nombre', titulo: 'Municipio' }, { clave: 'valor', titulo: 'Estudiantes', tipo: 'numero' }], filas: porMuni.map((p) => ({ nombre: p.nombre, valor: p.valor })) }}>
+          <Seccion titulo="¿De dónde son?" nota="Estudiantes por municipio. Toca uno para filtrar." tabla={tablaMunicipioT}>
             <MapaCaldas datos={datosMapa} placa={placa} fmt={num} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta="Estudiantes técnicos por municipio" />
           </Seccion>
-          <Seccion titulo="¿Dónde estudian?" nota="Estudiantes por universidad, divididos entre la Gobernación y otros aliados. Toca una barra para filtrar." tono="lavado" tabla={tablaAportante('Universidad', pUni, 'estudiantes-por-universidad')}>
+          <Seccion titulo="¿Dónde estudian?" nota="Estudiantes por universidad, divididos entre la Gobernación y otros aliados. Toca una barra para filtrar." tono="lavado" tabla={tablaUniT}>
             <Grafico etiqueta="Estudiantes por universidad, divididos entre la Gobernación de Caldas y otros aliados" alto={altoBarras(pUni.length)} alClic={alt('universidad')} opcion={opcionUni} />
           </Seccion>
         </div>
 
-        <Seccion titulo="Programas" nota="Estudiantes por programa, divididos entre la Gobernación y otros aliados. Toca una barra para filtrar." tabla={tablaAportante('Programa', pProg, 'estudiantes-por-programa')}>
+        <Seccion titulo="Programas" nota="Estudiantes por programa, divididos entre la Gobernación y otros aliados. Toca una barra para filtrar." tabla={tablaProgT}>
           <Grafico etiqueta="Estudiantes por programa, divididos entre la Gobernación de Caldas y otros aliados" alto={altoBarras(pProg.length)} alClic={alt('programa')} opcion={opcionProg} />
         </Seccion>
 
-        <Seccion titulo="Género" tono="lavado" tabla={{ archivo: 'estudiantes-por-genero', columnas: [{ clave: 'nombre', titulo: 'Género' }, { clave: 'valor', titulo: 'Estudiantes', tipo: 'numero' }], filas: pGenero.map((p) => ({ nombre: p.nombre, valor: p.valor })) }}>
+        <Seccion titulo="Género" tono="lavado" tabla={tablaGeneroT}>
           <div className="grid items-center gap-6 sm:grid-cols-2">
             <Grafico etiqueta="Estudiantes por género" alto={260} opcion={opcionGenero} />
             <Posiciones items={pGenero.map((g, i) => ({ nombre: g.nombre, valor: g.valor, color: coloresGenero[i % coloresGenero.length] }))} fmt={num} />

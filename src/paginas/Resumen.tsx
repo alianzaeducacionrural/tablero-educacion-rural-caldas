@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
 import { Grafico } from '../components/Grafico'
-import { Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAnios } from '../components/Lamina'
+import { BotonExcel, Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAnios } from '../components/Lamina'
 import { agrupar, alfa, sumar, unicos } from '../lib/agregar'
 import { useAngosto } from '../lib/angosto'
 import { PLACAS, colorAportante, colorPrograma } from '../lib/colores'
@@ -131,9 +131,34 @@ export function Resumen() {
     setInstitucionSel([])
   }
 
+  const tablaFlujoT = { archivo: 'distribucion-del-recurso', columnas: [{ clave: 'programa', titulo: 'Programa' }, { clave: 'grupo', titulo: 'Proyecto / proceso' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const }], filas: tablaFlujo }
+  const tablaMunicipioT = { archivo: 'inversion-por-municipio', columnas: [{ clave: 'nombre', titulo: 'Municipio' }, { clave: 'mf', titulo: 'Modelos Educativos Flexibles', tipo: 'moneda' as const }, { clave: 'uc', titulo: 'Universidad en el Campo', tipo: 'moneda' as const }, { clave: 'total', titulo: 'Total', tipo: 'moneda' as const }], filas: porMunicipioPrograma.map((p) => ({ nombre: p.nombre, mf: p.mf, uc: p.uc, total: p.mf + p.uc })) }
+  const tablaAnioT = { archivo: 'inversion-por-anio', columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'mf', titulo: 'Modelos Educativos Flexibles', tipo: 'moneda' as const }, { clave: 'uc', titulo: 'Universidad en el Campo', tipo: 'moneda' as const }], filas: porAnio.map((a) => ({ anio: String(a.anio), mf: a.mf, uc: a.uc })) }
+  const tablaResumenT = {
+    archivo: 'resumen',
+    columnas: [{ clave: 'indicador', titulo: 'Indicador' }, { clave: 'valor', titulo: 'Valor', tipo: 'numero' as const }],
+    filas: [
+      { indicador: `Total invertido${f.anios.length ? ` (${[...f.anios].sort().join(', ')})` : ''}`, valor: total },
+      { indicador: 'Departamento de Caldas', valor: depto },
+      { indicador: 'Comité de Cafeteros', valor: comite },
+      { indicador: 'Municipios', valor: unicos(base, (x) => x.municipio).size },
+      { indicador: 'Instituciones', valor: instituciones },
+      { indicador: 'Estudiantes beneficiados (Modelos Educativos Flexibles)', valor: sumar(beneficiados, (b) => b.beneficiados) },
+      { indicador: 'Estudiantes técnicos financiados (Universidad en el Campo)', valor: estudiantes.length },
+    ],
+  }
+  const hojasExcel = [
+    { nombre: 'Resumen', tabla: tablaResumenT },
+    { nombre: 'Programa y proyecto', tabla: tablaFlujoT },
+    { nombre: 'Municipio', tabla: tablaMunicipioT },
+    { nombre: 'Año', tabla: tablaAnioT },
+  ]
+
   return (
     <>
-      <PlacaCabecera placa={placa} titulo="Resumen de la inversión" texto="Inversión en educación rural de Caldas, entre Modelos Educativos Flexibles y Universidad en el Campo: cuánto, quién lo aportó y a qué municipios llegó. Toca el mapa para filtrar todo lo demás." />
+      <PlacaCabecera placa={placa} titulo="Resumen de la inversión" texto="Inversión en educación rural de Caldas, entre Modelos Educativos Flexibles y Universidad en el Campo: cuánto, quién lo aportó y a qué municipios llegó. Toca el mapa para filtrar todo lo demás.">
+        <BotonExcel archivo="resumen-educacion-rural-caldas" hojas={hojasExcel} />
+      </PlacaCabecera>
 
       <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
@@ -147,20 +172,7 @@ export function Resumen() {
           <MapaCaldas datos={datosMapa} placa={placa} fmt={cop} seleccion={f.municipios} alClic={alMunicipio} etiqueta="Mapa de Caldas coloreado por inversión de cada municipio" />
         </div>
 
-        <Seccion
-          titulo="¿A dónde va el recurso?"
-          nota="Del programa al proyecto o proceso."
-          tono="lavado"
-          tabla={{
-            archivo: 'distribucion-del-recurso',
-            columnas: [
-              { clave: 'programa', titulo: 'Programa' },
-              { clave: 'grupo', titulo: 'Proyecto / proceso' },
-              { clave: 'valor', titulo: 'Valor', tipo: 'moneda' },
-            ],
-            filas: tablaFlujo,
-          }}
-        >
+        <Seccion titulo="¿A dónde va el recurso?" nota="Del programa al proyecto o proceso." tono="lavado" tabla={tablaFlujoT}>
           <Grafico etiqueta="Distribución del recurso por programa y proyecto" alto={angosto ? 380 : 600} opcion={opcionSol} />
         </Seccion>
 
@@ -170,11 +182,7 @@ export function Resumen() {
           </div>
         </Seccion>
 
-        <Seccion
-          titulo="Año por año"
-          nota="Cómo cambió la inversión de un año al siguiente. Toca un año para filtrar."
-          tabla={{ archivo: 'inversion-por-anio', columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'mf', titulo: 'Modelos Educativos Flexibles', tipo: 'moneda' }, { clave: 'uc', titulo: 'Universidad en el Campo', tipo: 'moneda' }], filas: porAnio.map((a) => ({ anio: String(a.anio), mf: a.mf, uc: a.uc })) }}
-        >
+        <Seccion titulo="Año por año" nota="Cómo cambió la inversión de un año al siguiente. Toca un año para filtrar." tabla={tablaAnioT}>
           <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
             <div className="space-y-5">
               <Grafico etiqueta="Inversión por año y programa" alto={340} alClic={(n) => f.setAnios(alternar(f.anios, Number(n)))} opcion={opcionAnios} />

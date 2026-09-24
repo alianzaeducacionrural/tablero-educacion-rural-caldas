@@ -108,11 +108,8 @@ export function Layout() {
             <img src={logoSed} alt="Gobierno de Caldas, Secretaría de Educación" width={1100} height={129} className="h-9 w-auto sm:h-12" />
             <img src={logoComiteNegro} alt="Comité de Cafeteros de Caldas, Federación Nacional de Cafeteros de Colombia" width={700} height={196} className="h-10 w-auto sm:h-14" />
           </div>
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-2 border-t border-line pt-5 text-sm text-ink2">
+          <div className="mt-6 border-t border-line pt-5 text-sm text-ink2">
             <span>Educación rural en Caldas. Valores en pesos colombianos. Contornos municipales: DANE, vía geoBoundaries (CC BY 4.0). Cada visual tiene su tabla y se descarga en CSV.</span>
-            <NavLink to="/admin" className="font-bold text-accentink underline underline-offset-4">
-              Administración
-            </NavLink>
           </div>
         </div>
       </footer>

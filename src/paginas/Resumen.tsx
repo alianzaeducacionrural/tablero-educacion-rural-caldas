@@ -7,7 +7,7 @@ import { agrupar, alfa, sumar, unicos } from '../lib/agregar'
 import { useAngosto } from '../lib/angosto'
 import { PLACAS, colorAportante, colorPrograma } from '../lib/colores'
 import { alternar } from '../lib/filtros'
-import { cop, num, pct } from '../lib/formato'
+import { cop, num } from '../lib/formato'
 import { aclarar, columnas, pastel, sunburst, type Nodo } from '../lib/graficos'
 import { PROGRAMAS, type Programa } from '../lib/tipos'
 import { pasa, useTablero } from '../lib/usarFiltrado'
@@ -96,6 +96,10 @@ export function Resumen() {
     () => pastel({ partes: [{ nombre: 'Modelos Educativos Flexibles', valor: totalMf, color: colorPrograma('mf') }, { nombre: 'Universidad en el Campo', valor: total - totalMf, color: colorPrograma('uc') }], fmt: cop }),
     [totalMf, total],
   )
+  const opcionAportante = useMemo(
+    () => pastel({ partes: [{ nombre: 'Departamento de Caldas', valor: depto, color: colorAportante('Depto. de Caldas') }, { nombre: 'Comité de Cafeteros', valor: comite, color: colorAportante('Comité de Cafeteros') }], fmt: cop }),
+    [depto, comite],
+  )
 
   const municipiosDisp = useMemo(() => [...new Set([...datos.base.map((x) => x.municipio), ...datos.beneficiados.map((b) => b.municipio)])].sort(alfa), [datos])
   const grupos: GrupoFiltro[] = [{ clave: 'municipio', titulo: 'Municipio', opciones: municipiosDisp, valor: f.municipios, onChange: f.setMunicipios, abierto: true }]
@@ -114,28 +118,6 @@ export function Resumen() {
               Llegó a <Marca>{num(unicos(base, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(instituciones)} instituciones</Marca>. Beneficiaron a <Marca>{num(sumar(beneficiados, (b) => b.beneficiados))} estudiantes</Marca> y financiaron a <Marca>{num(estudiantes.length)} estudiantes técnicos</Marca>{f.anios.length > 0 && <> que ingresaron en {f.anios.join(', ')}</>}
               .
             </p>
-            <div>
-              <div className="flex h-5 overflow-hidden rounded-full ring-2 ring-white" role="img" aria-label={`Departamento de Caldas ${pct(total ? depto / total : 0)}, Comité de Cafeteros ${pct(total ? comite / total : 0)}`}>
-                <div style={{ width: `${total ? (depto / total) * 100 : 0}%`, background: colorAportante('Depto. de Caldas') }} />
-                <div style={{ width: `${total ? (comite / total) * 100 : 0}%`, background: colorAportante('Comité de Cafeteros') }} />
-              </div>
-              <div className="mt-3 space-y-2">
-                {[
-                  { n: 'Departamento de Caldas', c: colorAportante('Depto. de Caldas'), v: depto },
-                  { n: 'Comité de Cafeteros', c: colorAportante('Comité de Cafeteros'), v: comite },
-                ].map((a) => (
-                  <div key={a.n} className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
-                    <span className="size-3.5 rounded-full" style={{ background: a.c }} />
-                    <span className="font-bold" style={{ color: 'var(--ink)' }}>
-                      {a.n}
-                    </span>
-                    <span className="cota text-sm">
-                      {total ? pct(a.v / total) : '—'} · {cop(a.v)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
           <MapaCaldas datos={datosMapa} placa={placa} fmt={cop} seleccion={f.municipios} alClic={alMunicipio} etiqueta="Mapa de Caldas coloreado por inversión de cada municipio" />
         </div>
@@ -172,11 +154,19 @@ export function Resumen() {
               <Grafico etiqueta="Inversión por año y programa" alto={340} alClic={(n) => f.setAnios(alternar(f.anios, Number(n)))} opcion={opcionAnios} />
               <TablaAnios filas={porAnio.map((a) => ({ anio: a.anio, valores: [a.mf, a.uc] }))} series={seriesAnio} fmt={cop} nota="El año más reciente puede estar incompleto si su vigencia sigue en curso." />
             </div>
-            <div>
-              <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
-                Reparto por programa
-              </h3>
-              <Grafico etiqueta="Reparto de la inversión por programa" alto={320} opcion={opcionPastel} />
+            <div className="space-y-8">
+              <div>
+                <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
+                  Reparto por programa
+                </h3>
+                <Grafico etiqueta="Reparto de la inversión por programa" alto={260} opcion={opcionPastel} />
+              </div>
+              <div>
+                <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
+                  Reparto por aportante
+                </h3>
+                <Grafico etiqueta="Reparto de la inversión entre el Departamento de Caldas y el Comité de Cafeteros" alto={260} opcion={opcionAportante} />
+              </div>
             </div>
           </div>
         </Seccion>

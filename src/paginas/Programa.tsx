@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
 import { Grafico } from '../components/Grafico'
-import { BotonExcel, Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAniosDual } from '../components/Lamina'
+import { BotonExcel, Cifra, MapaCaldas, PlacaCabecera, Seccion, TablaAniosDual } from '../components/Lamina'
 import { RankingBarras } from '../components/Ranking'
 import { agrupar, agruparDoble, alfa, sumar, unicos } from '../lib/agregar'
 import { PLACAS, colorAportante, colorEstadoActividad } from '../lib/colores'

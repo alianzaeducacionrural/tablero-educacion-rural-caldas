@@ -11,13 +11,17 @@ interface Ctx {
 }
 const FiltrosCtx = createContext<Ctx | null>(null)
 const CLAVE = 'tablero-filtros-v1'
+/** Año activo por defecto en la primera visita de la sesión (la vigencia en curso). */
+const ANIO_PREDETERMINADO = [2026]
 
 function leer(): { anios: number[]; municipios: string[] } {
   try {
-    const j = JSON.parse(sessionStorage.getItem(CLAVE) ?? '{}') as { anios?: number[]; municipios?: string[] }
-    return { anios: Array.isArray(j.anios) ? j.anios : [], municipios: Array.isArray(j.municipios) ? j.municipios : [] }
+    const crudo = sessionStorage.getItem(CLAVE)
+    if (!crudo) return { anios: ANIO_PREDETERMINADO, municipios: [] }
+    const j = JSON.parse(crudo) as { anios?: number[]; municipios?: string[] }
+    return { anios: Array.isArray(j.anios) ? j.anios : ANIO_PREDETERMINADO, municipios: Array.isArray(j.municipios) ? j.municipios : [] }
   } catch {
-    return { anios: [], municipios: [] }
+    return { anios: ANIO_PREDETERMINADO, municipios: [] }
   }
 }
 

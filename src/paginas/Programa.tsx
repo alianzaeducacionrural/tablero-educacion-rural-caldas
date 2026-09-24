@@ -149,7 +149,19 @@ export function Programa({ programa }: { programa: Prog }) {
           </div>
         </div>
 
-        <Seccion titulo={`${cfg.grupos} y actividades`} nota="Cada barra es el valor invertido; a la derecha, el valor completo y la cantidad de actividades. Toca una para filtrar." tono="lavado" tabla={tablaActividadT}>
+        <Seccion titulo="Municipios" nota="Los que más recibieron." tabla={tablaMunicipioT}>
+          <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
+            <RankingBarras items={porMuni} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
+          </div>
+        </Seccion>
+
+        <Seccion titulo="Instituciones" nota="Las que más recibieron." tono="lavado" tabla={tablaInstitucionT}>
+          <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
+            <RankingBarras items={dobles.institucion} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.institucion} onClic={alt('institucion')} limite={dobles.institucion.length} />
+          </div>
+        </Seccion>
+
+        <Seccion titulo={`${cfg.grupos} y actividades`} nota="Cada barra es el valor invertido; a la derecha, el valor completo y la cantidad de actividades. Toca una para filtrar." tabla={tablaActividadT}>
           <div className="space-y-10">
             <div>
               <h3 className="display mb-3 text-2xl" style={{ color: 'var(--ink)' }}>
@@ -163,18 +175,6 @@ export function Programa({ programa }: { programa: Prog }) {
               </h3>
               <RankingBarras items={dobles.actividad} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.actividad} onClic={alt('actividad')} />
             </div>
-          </div>
-        </Seccion>
-
-        <Seccion titulo="Municipios" nota="Los que más recibieron." tabla={tablaMunicipioT}>
-          <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
-            <RankingBarras items={porMuni} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
-          </div>
-        </Seccion>
-
-        <Seccion titulo="Instituciones" nota="Las que más recibieron." tono="lavado" tabla={tablaInstitucionT}>
-          <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
-            <RankingBarras items={dobles.institucion} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.institucion} onClic={alt('institucion')} limite={dobles.institucion.length} />
           </div>
         </Seccion>
 

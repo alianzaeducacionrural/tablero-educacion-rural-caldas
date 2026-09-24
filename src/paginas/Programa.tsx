@@ -14,12 +14,14 @@ import { pasa, useTablero } from '../lib/usarFiltrado'
 type Local = 'grupo' | 'estado' | 'aportante' | 'institucion' | 'actividad'
 type Dim = Local | 'municipio' | 'anio'
 const VACIO: Record<Local, string[]> = { grupo: [], estado: [], aportante: [], institucion: [], actividad: [] }
+/** El estado arranca filtrado a "Convenio": lo adicional/reinvertido queda a un clic. */
+const INICIAL: Record<Local, string[]> = { ...VACIO, estado: ['Convenio'] }
 
 export function Programa({ programa }: { programa: Prog }) {
   const { datos, f } = useTablero()
   const cfg = PROGRAMAS[programa]
   const placa = PLACAS[programa]
-  const [sel, setSel] = useState<Record<Local, string[]>>(VACIO)
+  const [sel, setSel] = useState<Record<Local, string[]>>(INICIAL)
 
   const filas = useMemo(() => datos.base.filter((x) => x.programa === programa), [datos, programa])
 
@@ -80,7 +82,7 @@ export function Programa({ programa }: { programa: Prog }) {
     [anios, aportantes, vistas.anio, f.anios],
   )
   const opcionAniosCantidad = useMemo(
-    () => columnas({ categorias: anios.map(String), series: aportantes.map((p) => ({ nombre: p, color: colorAportante(p), datos: anios.map((a) => sumar(vistas.anio.filter((x) => x.anio === a && x.aportante === p), (x) => x.cantidad)) })), fmt: cant, seleccion: f.anios.map(String) }),
+    () => columnas({ categorias: anios.map(String), series: aportantes.map((p) => ({ nombre: p, color: colorAportante(p), datos: anios.map((a) => sumar(vistas.anio.filter((x) => x.anio === a && x.aportante === p), (x) => x.cantidad)) })), fmt: num, seleccion: f.anios.map(String) }),
     [anios, aportantes, vistas.anio, f.anios],
   )
   const filasAnio = anios.map((a) => ({ anio: a, valor: sumar(vistas.anio.filter((x) => x.anio === a), (x) => x.valor), cantidad: sumar(vistas.anio.filter((x) => x.anio === a), (x) => x.cantidad) }))
@@ -151,13 +153,13 @@ export function Programa({ programa }: { programa: Prog }) {
           </div>
         </div>
 
-        <Seccion titulo="Municipios" nota="Los que más recibieron." tabla={tablaMunicipioT}>
+        <Seccion titulo="Municipios" tabla={tablaMunicipioT}>
           <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
             <RankingBarras items={porMuni} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
           </div>
         </Seccion>
 
-        <Seccion titulo="Instituciones" nota="Las que más recibieron." tono="lavado" tabla={tablaInstitucionT}>
+        <Seccion titulo="Instituciones" tono="lavado" tabla={tablaInstitucionT}>
           <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
             <RankingBarras items={dobles.institucion} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.institucion} onClic={alt('institucion')} limite={dobles.institucion.length} />
           </div>

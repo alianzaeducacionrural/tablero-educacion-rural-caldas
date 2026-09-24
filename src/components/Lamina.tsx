@@ -263,7 +263,7 @@ export function TablaAnios({ filas, series, fmt, nota }: { filas: { anio: number
 }
 
 /** Comparación año a año con las dos cifras (valor y cantidad) y su cambio frente al año anterior. */
-export function TablaAniosDual({ filas, fmtValor, fmtCantidad, nota }: { filas: { anio: number; valor: number; cantidad: number }[]; fmtValor: (n: number) => string; fmtCantidad: (n: number) => string; nota?: string }) {
+export function TablaAniosDual({ filas, fmtValor, fmtCantidad, tituloCantidad = 'Cantidad', nota }: { filas: { anio: number; valor: number; cantidad: number }[]; fmtValor: (n: number) => string; fmtCantidad: (n: number) => string; tituloCantidad?: string; nota?: string }) {
   const o = [...filas].sort((a, b) => a.anio - b.anio)
   const cambio = (actual: number, antes: number | undefined) => {
     if (antes === undefined || antes <= 0) return <span className="text-muted">—</span>
@@ -285,7 +285,7 @@ export function TablaAniosDual({ filas, fmtValor, fmtCantidad, nota }: { filas: 
               <th scope="col" className={`${th} text-left`}>Año</th>
               <th scope="col" className={`${th} text-right`}>Valor</th>
               <th scope="col" className={`${th} text-right`}>Cambio</th>
-              <th scope="col" className={`${th} text-right`}>Cantidad</th>
+              <th scope="col" className={`${th} text-right`}>{tituloCantidad}</th>
               <th scope="col" className={`${th} text-right`}>Cambio</th>
             </tr>
           </thead>

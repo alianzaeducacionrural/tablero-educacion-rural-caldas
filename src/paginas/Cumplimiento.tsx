@@ -79,7 +79,7 @@ export function Cumplimiento() {
   const opcionCofin = useMemo(() => apiladasH({ filas: filasCofin, fmt: cop }), [filasCofin])
   const totalDepto = sumar(filasCofin, (f) => f.partes[0].valor)
   const totalComite = sumar(filasCofin, (f) => f.partes[1].valor)
-  const opcionPastelCofin = useMemo(() => pastel({ partes: [{ nombre: 'Departamento de Caldas', valor: totalDepto, color: colorAportante('Departamento de Caldas') }, { nombre: 'Comité de Cafeteros', valor: totalComite, color: colorAportante('Comité de Cafeteros') }], fmt: cop }), [totalDepto, totalComite])
+  const opcionPastelCofin = useMemo(() => pastel({ partes: [{ nombre: 'Departamento de Caldas', valor: totalDepto, color: colorAportante('Departamento de Caldas') }, { nombre: 'Comité de Cafeteros', valor: totalComite, color: colorAportante('Comité de Cafeteros') }], fmt: cop, mostrarValor: true }), [totalDepto, totalComite])
 
   return (
     <>

@@ -278,8 +278,8 @@ export function dona(o: { partes: { nombre: string; valor: number; color: string
   }
 }
 
-/** Pastel completo, con el nombre y el porcentaje de cada porción. */
-export function pastel(o: { partes: { nombre: string; valor: number; color: string }[]; fmt: (n: number) => string; seleccion?: string[] }): EChartsCoreOption {
+/** Pastel completo, con el nombre y el porcentaje (o el valor completo) de cada porción. */
+export function pastel(o: { partes: { nombre: string; valor: number; color: string }[]; fmt: (n: number) => string; seleccion?: string[]; mostrarValor?: boolean }): EChartsCoreOption {
   const c = comun()
   const hay = (o.seleccion?.length ?? 0) > 0
   return {
@@ -293,7 +293,7 @@ export function pastel(o: { partes: { nombre: string; valor: number; color: stri
         padAngle: 1.5,
         startAngle: 80,
         itemStyle: { borderRadius: 8, borderColor: '#ffffff', borderWidth: 2 },
-        label: { show: true, color: TINTA.texto, fontFamily: FUENTE, fontSize: 12, fontWeight: 600, formatter: (p: { name: string; percent: number }) => `${p.name.length > 22 ? p.name.slice(0, 21) + '…' : p.name}\n${p.percent.toFixed(1).replace('.', ',')} %`, lineHeight: 16 },
+        label: { show: true, color: TINTA.texto, fontFamily: FUENTE, fontSize: 12, fontWeight: 600, formatter: (p: { name: string; value: number; percent: number }) => `${p.name.length > 22 ? p.name.slice(0, 21) + '…' : p.name}\n${o.mostrarValor ? o.fmt(p.value) : `${p.percent.toFixed(1).replace('.', ',')} %`}`, lineHeight: 16 },
         labelLine: { length: 12, length2: 10, lineStyle: { color: TINTA.suave } },
         emphasis: { scaleSize: 6 },
         data: o.partes.map((p) => ({ name: p.nombre, value: p.valor, itemStyle: { color: hay && !o.seleccion!.includes(p.nombre) ? TINTA.vacio : p.color } })),

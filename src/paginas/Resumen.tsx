@@ -112,7 +112,7 @@ export function Resumen() {
     [totalMf, total],
   )
   const opcionAportante = useMemo(
-    () => pastel({ partes: [{ nombre: 'Departamento de Caldas', valor: depto, color: colorAportante('Depto. de Caldas') }, { nombre: 'Comité de Cafeteros', valor: comite, color: colorAportante('Comité de Cafeteros') }], fmt: cop }),
+    () => pastel({ partes: [{ nombre: 'Departamento de Caldas', valor: depto, color: colorAportante('Depto. de Caldas') }, { nombre: 'Comité de Cafeteros', valor: comite, color: colorAportante('Comité de Cafeteros') }], fmt: cop, mostrarValor: true }),
     [depto, comite],
   )
 

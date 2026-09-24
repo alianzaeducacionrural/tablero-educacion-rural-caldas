@@ -66,7 +66,7 @@ export const PLACAS: Record<string, Placa> = {
   },
   estudiantes: {
     id: 'estudiantes',
-    nombre: 'Estudiantes',
+    nombre: 'Técnicos Profesionales',
     ruta: '/estudiantes',
     frase: 'Cada punto, un estudiante técnico',
     main: '#0B8F58',

@@ -125,10 +125,14 @@ export function Cobertura() {
 
         <div className="grid items-start gap-12 2xl:grid-cols-2">
           <Seccion titulo="Municipios" nota="Beneficiados y sedes atendidas. Toca uno para filtrar." tabla={tablaPares('Municipio', porMuni, 'beneficiados-por-municipio')}>
-            <RankingBarras items={porMuni} fmtValor={num} fmtCantidad={(n) => `${num(n)} sedes`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} />
+            <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
+              <RankingBarras items={porMuni} fmtValor={num} fmtCantidad={(n) => `${num(n)} sedes`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
+            </div>
           </Seccion>
           <Seccion titulo="Instituciones" nota="Beneficiados y sedes de cada institución." tabla={tablaPares('Institución', porInst, 'beneficiados-por-institucion')}>
-            <RankingBarras items={porInst} fmtValor={num} fmtCantidad={(n) => `${num(n)} sedes`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} />
+            <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
+              <RankingBarras items={porInst} fmtValor={num} fmtCantidad={(n) => `${num(n)} sedes`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} limite={porInst.length} />
+            </div>
           </Seccion>
         </div>
 

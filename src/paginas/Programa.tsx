@@ -6,7 +6,7 @@ import { RankingBarras } from '../components/Ranking'
 import { agrupar, agruparDoble, alfa, sumar, unicos } from '../lib/agregar'
 import { PLACAS, colorAportante, colorEstadoActividad } from '../lib/colores'
 import { alternar } from '../lib/filtros'
-import { cant, cop, num, pct } from '../lib/formato'
+import { cant, cop, num } from '../lib/formato'
 import { columnas, pastel } from '../lib/graficos'
 import { PROGRAMAS, type FilaBase, type Programa as Prog } from '../lib/tipos'
 import { pasa, useTablero } from '../lib/usarFiltrado'
@@ -30,6 +30,8 @@ export function Programa({ programa }: { programa: Prog }) {
     return new Set([...m].filter(([, s]) => s.size > 1).map(([n]) => n))
   }, [filas])
   const etiquetaInst = (x: FilaBase) => (repetidos.has(x.institucion) ? `${x.institucion} (${x.municipio})` : x.institucion)
+  // "Adicional al convenio" se acorta para que el nombre quepa completo en el ranking.
+  const etiquetaEstado = (e: string) => (/^adicional\s+al\s+convenio$/i.test(e) ? 'Adicional' : e)
 
   // Cada visual se calcula con todos los filtros MENOS el suyo: sus hermanos siguen visibles y el elegido queda resaltado.
   const vistas = useMemo(() => {
@@ -37,7 +39,7 @@ export function Programa({ programa }: { programa: Prog }) {
       (omitir === 'anio' || pasa(f, x.anio, null)) &&
       (omitir === 'municipio' || pasa(f, null, x.municipio)) &&
       (omitir === 'grupo' || !sel.grupo.length || sel.grupo.includes(x.grupo)) &&
-      (omitir === 'estado' || !sel.estado.length || sel.estado.includes(x.estado)) &&
+      (omitir === 'estado' || !sel.estado.length || sel.estado.includes(etiquetaEstado(x.estado))) &&
       (omitir === 'aportante' || !sel.aportante.length || sel.aportante.includes(x.aportante)) &&
       (omitir === 'institucion' || !sel.institucion.length || sel.institucion.includes(etiquetaInst(x))) &&
       (omitir === 'actividad' || !sel.actividad.length || sel.actividad.includes(x.actividad))
@@ -48,9 +50,13 @@ export function Programa({ programa }: { programa: Prog }) {
 
   const t = vistas.todas
   const total = sumar(t, (x) => x.valor)
-  const cantidadTotal = sumar(t, (x) => x.cantidad)
-  const depto = sumar(t.filter((x) => /depto|departamento|gobernaci/i.test(x.aportante)), (x) => x.valor)
-  const extra = sumar(t.filter((x) => !/^convenio$/i.test(x.estado)), (x) => x.valor)
+  const estudiantesAtendidos = useMemo(
+    () =>
+      programa === 'mf'
+        ? sumar(datos.beneficiados.filter((b) => pasa(f, b.anio, b.municipio)), (b) => b.beneficiados)
+        : datos.estudiantes.filter((e) => /gobernaci/i.test(e.financiador) && pasa(f, e.anioIngreso, e.municipio)).length,
+    [datos, f, programa],
+  )
 
   // Mapa: valor por municipio (con la cantidad en el tooltip)
   const porMuni = useMemo(() => agruparDoble(vistas.municipio, (x) => x.municipio, (x) => x.valor, (x) => x.cantidad), [vistas.municipio])
@@ -61,11 +67,11 @@ export function Programa({ programa }: { programa: Prog }) {
     grupo: agruparDoble(vistas.grupo, (x) => x.grupo, (x) => x.valor, (x) => x.cantidad),
     actividad: agruparDoble(vistas.actividad, (x) => x.actividad, (x) => x.valor, (x) => x.cantidad),
     institucion: agruparDoble(vistas.institucion, etiquetaInst, (x) => x.valor, (x) => x.cantidad),
-    estado: agruparDoble(vistas.estado, (x) => x.estado, (x) => x.valor, (x) => x.cantidad),
+    estado: agruparDoble(vistas.estado, (x) => etiquetaEstado(x.estado), (x) => x.valor, (x) => x.cantidad),
   }
   const aportantes = useMemo(() => [...new Set(filas.map((x) => x.aportante))].sort(alfa), [filas])
   const pAportante = agrupar(t, (x) => x.aportante, (x) => x.valor)
-  const opcionAportante = useMemo(() => pastel({ partes: pAportante.map((p) => ({ nombre: p.nombre, valor: p.valor, color: colorAportante(p.nombre) })), fmt: cop, seleccion: sel.aportante }), [pAportante, sel.aportante]) // eslint-disable-line react-hooks/exhaustive-deps
+  const opcionAportante = useMemo(() => pastel({ partes: pAportante.map((p) => ({ nombre: p.nombre, valor: p.valor, color: colorAportante(p.nombre) })), fmt: cop, seleccion: sel.aportante, mostrarValor: true }), [pAportante, sel.aportante]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Comparación entre años: las dos medidas a la vez
   const anios = useMemo(() => [...new Set(filas.map((x) => x.anio))].sort(), [filas])
@@ -99,7 +105,7 @@ export function Programa({ programa }: { programa: Prog }) {
   }
   const alt = (d: Local) => (n: string) => setSel((s) => ({ ...s, [d]: alternar(s[d], n) }))
 
-  const tablaDoble = (col: string, ds: { nombre: string; valor: number; cantidad: number }[], archivo: string) => ({ archivo, columnas: [{ clave: 'nombre', titulo: col }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const }, { clave: 'cantidad', titulo: 'Cantidad', tipo: 'cantidad' as const }], filas: ds })
+  const tablaDoble = (col: string, ds: { nombre: string; valor: number; cantidad: number }[], archivo: string) => ({ archivo, columnas: [{ clave: 'nombre', titulo: col }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const }, { clave: 'cantidad', titulo: 'Actividades', tipo: 'cantidad' as const }], filas: ds })
   const coloresGrupo = Object.fromEntries(dobles.grupo.map((g, i) => [g.nombre, placa.apoyo[i % placa.apoyo.length]]))
 
   return (
@@ -112,18 +118,12 @@ export function Programa({ programa }: { programa: Prog }) {
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-1">
               <Cifra tam="md" valor={cop(total)} etiqueta="invertidos (valor)" />
-              <Cifra tam="md" valor={cant(cantidadTotal)} etiqueta={`actividades realizadas (cantidad) · ${num(unicos(t, (x) => x.actividad).size)} tipos`} />
+              <Cifra
+                tam="md"
+                valor={num(estudiantesAtendidos)}
+                etiqueta={programa === 'mf' ? `estudiantes beneficiados${f.anios.length ? `, ${[...f.anios].sort().join(', ')}` : ''}` : `estudiantes técnicos financiados${f.anios.length ? `, ingreso ${[...f.anios].sort().join(', ')}` : ''}`}
+              />
             </div>
-            <Cifra tam="sm" valor={total ? pct(depto / total, 1) : '—'} etiqueta="del valor lo puso el Departamento de Caldas" />
-            <p className="text-lg leading-relaxed text-ink2">
-              En <Marca>{num(unicos(t, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(unicos(t.filter((x) => x.tipo === 'Institución'), (x) => `${x.municipio}|${x.institucion}`).size)} instituciones</Marca>.
-              {extra > 0 && (
-                <>
-                  {' '}
-                  Lo adicional al convenio y la reinversión suman <Marca>{cop(extra)}</Marca>.
-                </>
-              )}
-            </p>
           </div>
         </div>
 
@@ -133,36 +133,40 @@ export function Programa({ programa }: { programa: Prog }) {
               <h3 className="display mb-3 text-2xl" style={{ color: 'var(--ink)' }}>
                 Por {cfg.grupo.toLowerCase()}
               </h3>
-              <RankingBarras items={dobles.grupo.map((g) => ({ ...g, color: coloresGrupo[g.nombre] }))} fmtValor={cop} fmtCantidad={cant} colorBase={placa.main} seleccion={sel.grupo} onClic={alt('grupo')} />
+              <RankingBarras items={dobles.grupo.map((g) => ({ ...g, color: coloresGrupo[g.nombre] }))} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.grupo} onClic={alt('grupo')} />
             </div>
             <div>
               <h3 className="display mb-3 text-2xl" style={{ color: 'var(--ink)' }}>
                 Por actividad
               </h3>
-              <RankingBarras items={dobles.actividad} fmtValor={cop} fmtCantidad={cant} colorBase={placa.main} seleccion={sel.actividad} onClic={alt('actividad')} />
+              <RankingBarras items={dobles.actividad} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.actividad} onClic={alt('actividad')} />
             </div>
           </div>
         </Seccion>
 
         <div className="grid items-start gap-12 2xl:grid-cols-2">
           <Seccion titulo="Municipios" nota="Los que más recibieron." tabla={tablaDoble('Municipio', porMuni, `${programa}-municipios`)}>
-            <RankingBarras items={porMuni} fmtValor={cop} fmtCantidad={cant} colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} />
+            <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
+              <RankingBarras items={porMuni} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
+            </div>
           </Seccion>
           <Seccion titulo="Instituciones" nota="Las que más recibieron." tabla={tablaDoble('Institución', dobles.institucion, `${programa}-instituciones`)}>
-            <RankingBarras items={dobles.institucion} fmtValor={cop} fmtCantidad={cant} colorBase={placa.main} seleccion={sel.institucion} onClic={alt('institucion')} />
+            <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
+              <RankingBarras items={dobles.institucion} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.institucion} onClic={alt('institucion')} limite={dobles.institucion.length} />
+            </div>
           </Seccion>
         </div>
 
         <div className="grid items-start gap-12 2xl:grid-cols-2">
           <Seccion titulo="Estado de la actividad" nota="Lo que está dentro del convenio frente a lo que se hizo además." tabla={tablaDoble('Estado', dobles.estado, `${programa}-estados`)}>
-            <RankingBarras items={dobles.estado.map((e) => ({ ...e, color: colorEstadoActividad(e.nombre, programa) }))} fmtValor={cop} fmtCantidad={cant} colorBase={placa.main} seleccion={sel.estado} onClic={alt('estado')} />
+            <RankingBarras items={dobles.estado.map((e) => ({ ...e, color: colorEstadoActividad(e.nombre, programa) }))} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.estado} onClic={alt('estado')} />
           </Seccion>
           <Seccion titulo="Quién aportó" nota="Distribución del valor entre aportantes." tabla={tablaDoble('Aportante', pAportante.map((p) => ({ ...p, cantidad: sumar(t.filter((x) => x.aportante === p.nombre), (x) => x.cantidad) })), `${programa}-aportantes`)}>
             <Grafico etiqueta="Distribución del valor por aportante" alto={300} alClic={alt('aportante')} opcion={opcionAportante} />
           </Seccion>
         </div>
 
-        <Seccion titulo="Año por año" nota="Valor y cantidad, año contra año, por aportante. Toca un año para filtrar." tono="lavado" tabla={{ archivo: `${programa}-por-anio`, columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' }, { clave: 'cantidad', titulo: 'Cantidad', tipo: 'cantidad' }], filas: filasAnio.map((a) => ({ anio: String(a.anio), valor: a.valor, cantidad: a.cantidad })) }}>
+        <Seccion titulo="Año por año" nota="Valor y actividades, año contra año, por aportante. Toca un año para filtrar." tono="lavado" tabla={{ archivo: `${programa}-por-anio`, columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' }, { clave: 'cantidad', titulo: 'Actividades', tipo: 'cantidad' }], filas: filasAnio.map((a) => ({ anio: String(a.anio), valor: a.valor, cantidad: a.cantidad })) }}>
           <div className="space-y-8">
             <div className="grid items-start gap-8 xl:grid-cols-2">
               <div>
@@ -173,12 +177,12 @@ export function Programa({ programa }: { programa: Prog }) {
               </div>
               <div>
                 <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
-                  Cantidad
+                  Actividades
                 </h3>
-                <Grafico etiqueta="Cantidad por año y aportante" alto={320} alClic={(n) => f.setAnios(alternar(f.anios, Number(n)))} opcion={opcionAniosCantidad} />
+                <Grafico etiqueta="Actividades por año y aportante" alto={320} alClic={(n) => f.setAnios(alternar(f.anios, Number(n)))} opcion={opcionAniosCantidad} />
               </div>
             </div>
-            <TablaAniosDual filas={filasAnio} fmtValor={cop} fmtCantidad={cant} nota="El año más reciente puede estar incompleto si su vigencia sigue en curso." />
+            <TablaAniosDual filas={filasAnio} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" nota="El año más reciente puede estar incompleto si su vigencia sigue en curso." />
           </div>
         </Seccion>
       </ConFiltros>

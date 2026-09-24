@@ -123,7 +123,7 @@ export function Resumen() {
 
   return (
     <>
-      <PlacaCabecera placa={placa} titulo="El recurso, sobre el mapa" texto="Cuánto invirtió la Gobernación de Caldas en educación rural, quién lo aportó y a qué municipios llegó. Toca el mapa para filtrar todo lo demás." />
+      <PlacaCabecera placa={placa} titulo="Resumen de la inversión" texto="Inversión en educación rural de Caldas, entre Modelos Educativos Flexibles y Universidad en el Campo: cuánto, quién lo aportó y a qué municipios llegó. Toca el mapa para filtrar todo lo demás." />
 
       <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={f.limpiar} />} etiquetas={etiquetas} onLimpiar={f.limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">

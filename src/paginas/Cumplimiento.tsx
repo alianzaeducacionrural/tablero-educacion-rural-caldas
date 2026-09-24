@@ -157,9 +157,9 @@ export function Cumplimiento() {
                   <Grafico etiqueta="Cofinanciación del Departamento y del Comité por proceso" alto={Math.max(220, filasCofin.length * 60 + 60)} opcion={opcionCofin} />
                   <div>
                     <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
-                      Reparto total
+                      Distribución total
                     </h3>
-                    <Grafico etiqueta="Reparto total de la cofinanciación" alto={280} opcion={opcionPastelCofin} />
+                    <Grafico etiqueta="Distribución total de la cofinanciación" alto={280} opcion={opcionPastelCofin} />
                   </div>
                 </div>
               </Seccion>

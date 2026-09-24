@@ -157,8 +157,8 @@ export function Programa({ programa }: { programa: Prog }) {
           <Seccion titulo="Estado de la actividad" nota="Lo que está dentro del convenio frente a lo que se hizo además." tabla={tablaDoble('Estado', dobles.estado, `${programa}-estados`)}>
             <RankingBarras items={dobles.estado.map((e) => ({ ...e, color: colorEstadoActividad(e.nombre, programa) }))} fmtValor={cop} fmtCantidad={cant} colorBase={placa.main} seleccion={sel.estado} onClic={alt('estado')} />
           </Seccion>
-          <Seccion titulo="Quién aportó" nota="Reparto del valor entre aportantes." tabla={tablaDoble('Aportante', pAportante.map((p) => ({ ...p, cantidad: sumar(t.filter((x) => x.aportante === p.nombre), (x) => x.cantidad) })), `${programa}-aportantes`)}>
-            <Grafico etiqueta="Reparto del valor por aportante" alto={300} alClic={alt('aportante')} opcion={opcionAportante} />
+          <Seccion titulo="Quién aportó" nota="Distribución del valor entre aportantes." tabla={tablaDoble('Aportante', pAportante.map((p) => ({ ...p, cantidad: sumar(t.filter((x) => x.aportante === p.nombre), (x) => x.cantidad) })), `${programa}-aportantes`)}>
+            <Grafico etiqueta="Distribución del valor por aportante" alto={300} alClic={alt('aportante')} opcion={opcionAportante} />
           </Seccion>
         </div>
 

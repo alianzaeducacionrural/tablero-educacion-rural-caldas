@@ -173,15 +173,15 @@ export function Resumen() {
             <div className="space-y-8">
               <div>
                 <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
-                  Reparto por programa
+                  Distribución por programa
                 </h3>
-                <Grafico etiqueta="Reparto de la inversión por programa" alto={260} opcion={opcionPastel} />
+                <Grafico etiqueta="Distribución de la inversión por programa" alto={260} opcion={opcionPastel} />
               </div>
               <div>
                 <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
-                  Reparto por aportante
+                  Distribución por aportante
                 </h3>
-                <Grafico etiqueta="Reparto de la inversión entre el Departamento de Caldas y el Comité de Cafeteros" alto={260} opcion={opcionAportante} />
+                <Grafico etiqueta="Distribución de la inversión entre el Departamento de Caldas y el Comité de Cafeteros" alto={260} opcion={opcionAportante} />
               </div>
             </div>
           </div>

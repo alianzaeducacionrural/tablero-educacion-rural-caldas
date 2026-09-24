@@ -136,7 +136,7 @@ export function Cobertura() {
       <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
           <MapaCaldas datos={datosMapa} extra={extraMapa} placa={placa} fmt={num} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta="Estudiantes beneficiados por municipio" />
-          <div className="space-y-6">
+          <div className="space-y-6 rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6">
             <Cifra tam="lg" valor={num(total)} etiqueta="estudiantes beneficiados" />
             <p className="text-lg leading-relaxed text-ink2">
               En <Marca>{num(unicos(filas, (b) => b.municipio).size)} municipios</Marca>, <Marca>{num(unicos(filas, (b) => `${b.municipio}|${b.institucion}`).size)} instituciones</Marca> y <Marca>{num(unicos(filas, (b) => `${b.municipio}|${b.institucion}|${b.sede}`).size)} sedes</Marca>.

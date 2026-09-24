@@ -17,9 +17,11 @@ interface Props {
   /** Texto para lectores de pantalla. */
   etiqueta: string
   alClic?: (nombre: string) => void
+  /** El mapa ya tiene su propia silueta suelta: no lo encierra en un recuadro. */
+  sinRecuadro?: boolean
 }
 
-export function Grafico({ opcion, alto, etiqueta, alClic }: Props) {
+export function Grafico({ opcion, alto, etiqueta, alClic, sinRecuadro }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const chart = useRef<ECharts | null>(null)
   const clic = useRef(alClic)
@@ -48,9 +50,7 @@ export function Grafico({ opcion, alto, etiqueta, alClic }: Props) {
     chart.current?.setOption(opcion, true)
   }, [opcion])
 
-  return (
-    <div className="w-full rounded-3xl bg-white p-4 ring-1 ring-line sm:p-5">
-      <div ref={ref} role="img" aria-label={etiqueta} style={{ height: alto, cursor: alClic ? 'pointer' : 'default' }} className="w-full" />
-    </div>
-  )
+  const grafico = <div ref={ref} role="img" aria-label={etiqueta} style={{ height: alto, cursor: alClic ? 'pointer' : 'default' }} className="w-full" />
+  if (sinRecuadro) return grafico
+  return <div className="w-full rounded-3xl bg-white p-4 ring-1 ring-line sm:p-5">{grafico}</div>
 }

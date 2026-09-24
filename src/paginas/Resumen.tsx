@@ -47,10 +47,12 @@ export function Resumen() {
     })
     return [...m.entries()].map(([nombre, v]) => ({ nombre, ...v })).sort((a, b) => b.mf + b.uc - (a.mf + a.uc) || alfa(a.nombre, b.nombre))
   }, [baseMunicipios])
+  const [verTodosMuni, setVerTodosMuni] = useState(false)
+  const municipiosMostrados = verTodosMuni ? porMunicipioPrograma : porMunicipioPrograma.slice(0, 10)
   const opcionMunicipios = useMemo(
     () =>
       apiladasH({
-        filas: porMunicipioPrograma.map((p) => ({
+        filas: municipiosMostrados.map((p) => ({
           nombre: p.nombre,
           partes: [
             { nombre: PROGRAMAS.mf.nombre, valor: p.mf, color: colorPrograma('mf') },
@@ -60,7 +62,7 @@ export function Resumen() {
         fmt: cop,
         mostrarTotal: true,
       }),
-    [porMunicipioPrograma],
+    [municipiosMostrados],
   )
 
   // Programa → proyecto/proceso
@@ -163,7 +165,7 @@ export function Resumen() {
 
       <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-          <div className="space-y-6">
+          <div className="space-y-6 rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6">
             <Cifra tam="md" valor={cop(total)} etiqueta={`invertidos en educación rural${f.anios.length ? `, ${[...f.anios].sort().join(', ')}` : rango ? `, ${rango}` : ''}`} />
             <p className="text-lg leading-relaxed text-ink2">
               Llegó a <Marca>{num(unicos(base, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(instituciones)} instituciones</Marca>. Beneficiaron a <Marca>{num(sumar(beneficiados, (b) => b.beneficiados))} estudiantes</Marca> y financiaron a <Marca>{num(estudiantes.length)} estudiantes técnicos</Marca>.
@@ -173,12 +175,19 @@ export function Resumen() {
           <MapaCaldas datos={datosMapa} placa={placa} fmt={cop} seleccion={f.municipios} alClic={alMunicipio} etiqueta="Mapa de Caldas coloreado por inversión de cada municipio" />
         </div>
 
-        <Seccion titulo="¿A dónde va el recurso?" nota="Del programa al proyecto o proceso." tono="lavado" tabla={tablaFlujoT}>
-          <Grafico etiqueta="Distribución del recurso por programa y proyecto" alto={angosto ? 380 : 600} opcion={opcionSol} />
+        <Seccion titulo="Distribución por municipio" nota="Modelos Educativos Flexibles frente a Universidad en el Campo, en cada municipio. Toca uno para filtrar; el valor es la inversión total.">
+          <div className={verTodosMuni ? 'max-h-[560px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6' : 'rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6'}>
+            <Grafico etiqueta="Distribución de la inversión por municipio, dividida entre Modelos Educativos Flexibles y Universidad en el Campo" alto={altoBarras(municipiosMostrados.length)} alClic={alMunicipio} opcion={opcionMunicipios} sinRecuadro />
+          </div>
+          {porMunicipioPrograma.length > 10 && (
+            <button type="button" onClick={() => setVerTodosMuni((v) => !v)} className="mt-4 rounded-full px-4 py-2 text-sm font-bold text-accentink hover:bg-wash">
+              {verTodosMuni ? 'Ver los 10 principales' : `Ver los ${porMunicipioPrograma.length} municipios`}
+            </button>
+          )}
         </Seccion>
 
-        <Seccion titulo="Distribución por municipio" nota="Modelos Educativos Flexibles frente a Universidad en el Campo, en cada municipio. Toca uno para filtrar; el valor es la inversión total.">
-          <Grafico etiqueta="Distribución de la inversión por municipio, dividida entre Modelos Educativos Flexibles y Universidad en el Campo" alto={altoBarras(porMunicipioPrograma.length)} alClic={alMunicipio} opcion={opcionMunicipios} />
+        <Seccion titulo="¿A dónde va el recurso?" nota="Del programa al proyecto o proceso." tono="lavado" tabla={tablaFlujoT}>
+          <Grafico etiqueta="Distribución del recurso por programa y proyecto" alto={angosto ? 340 : 460} opcion={opcionSol} />
         </Seccion>
 
         <Seccion titulo="Año por año" nota="Cómo cambió la inversión de un año al siguiente. Toca un año para filtrar." tabla={tablaAnioT}>

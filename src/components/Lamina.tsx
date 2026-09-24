@@ -184,7 +184,7 @@ export function MapaCaldas({ datos, placa, fmt, seleccion, alClic, sinDatos = ['
   return (
     <div>
       <div className="w-full" style={{ aspectRatio: '1.22' }}>
-        <Grafico opcion={opcion} alto="100%" etiqueta={etiqueta} alClic={(n) => !sinDatos.includes(n) && alClic(n)} />
+        <Grafico opcion={opcion} alto="100%" etiqueta={etiqueta} alClic={(n) => !sinDatos.includes(n) && alClic(n)} sinRecuadro />
       </div>
       <LeyendaCotas placa={placa} max={max} fmt={fmt} banda={banda} onBanda={setBanda} />
       {sinDatos.length > 0 && <p className="mt-1 text-xs text-ink2">{sinDatos.join(', ')}: sin datos en este tablero (tiene convenio propio).</p>}

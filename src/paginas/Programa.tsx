@@ -135,7 +135,7 @@ export function Programa({ programa }: { programa: Prog }) {
       <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
           <MapaCaldas datos={datosMapa} extra={extraMapa} placa={placa} fmt={cop} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta={`Valor de ${cfg.nombre} por municipio`} />
-          <div className="space-y-6">
+          <div className="space-y-6 rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-1">
               <Cifra tam="md" valor={cop(total)} etiqueta="invertidos (valor)" />
               <Cifra

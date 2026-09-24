@@ -110,7 +110,7 @@ export function Resumen() {
   )
   const totalMf = sumar(base.filter((x) => x.programa === 'mf'), (x) => x.valor)
   const opcionPastel = useMemo(
-    () => pastel({ partes: [{ nombre: 'Modelos Educativos Flexibles', valor: totalMf, color: colorPrograma('mf') }, { nombre: 'Universidad en el Campo', valor: total - totalMf, color: colorPrograma('uc') }], fmt: cop }),
+    () => pastel({ partes: [{ nombre: 'Modelos Educativos Flexibles', valor: totalMf, color: colorPrograma('mf') }, { nombre: 'Universidad en el Campo', valor: total - totalMf, color: colorPrograma('uc') }], fmt: cop, mostrarValor: true }),
     [totalMf, total],
   )
   const opcionAportante = useMemo(

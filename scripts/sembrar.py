@@ -132,6 +132,8 @@ def actualizar_estado(est, nombre_est, ruta):
 
     def estado_canonico(e):
         p = plegar(e)
+        if "riesgo" in p:  # decisión del equipo: "En riesgo" se cuenta como Activo
+            p = "activo"
         return canon.get(p, limpiar(e).capitalize())
 
     viejo = pd.DataFrame({"k": nombre_est, "muni": est["municipio"].map(plegar), "cohorte": pd.to_numeric(est["anio_ingreso"], errors="coerce")})

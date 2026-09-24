@@ -14,7 +14,7 @@ import { pasa, useTablero } from '../lib/usarFiltrado'
 type Local = 'universidad' | 'programa' | 'estado' | 'institucion' | 'financiador'
 type Dim = Local | 'municipio' | 'anio'
 const placa = PLACAS.estudiantes
-const ORDEN_ESTADO = ['Graduado', 'Activo', 'Pendiente de grado', 'En riesgo', 'Desertor']
+const ORDEN_ESTADO = ['Graduado', 'Activo', 'Pendiente de grado', 'Desertor']
 const ordenEstado = (e: string) => (ORDEN_ESTADO.indexOf(e) < 0 ? 99 : ORDEN_ESTADO.indexOf(e))
 const VACIO: Record<Local, string[]> = { universidad: [], programa: [], estado: [], institucion: [], financiador: [] }
 /** Gobernación de Caldas frente al resto de aliados que financian estudiantes. */

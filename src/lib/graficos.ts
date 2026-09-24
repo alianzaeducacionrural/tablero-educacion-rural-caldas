@@ -197,6 +197,15 @@ export function columnas(o: { categorias: string[]; series: SerieCol[]; fmt: (n:
       barMaxWidth: o.apilada ? 60 : 44,
       barGap: '12%',
       itemStyle: { color: s.color },
+      label: {
+        show: true,
+        position: o.apilada ? 'inside' : 'top',
+        color: o.apilada ? textoSobre(s.color) : TINTA.texto,
+        fontFamily: MONO,
+        fontSize: 11,
+        fontWeight: 700,
+        formatter: (p: { value: number }) => (p.value > 0 ? o.fmt(p.value) : ''),
+      },
       data: s.datos.map((v, i) => ({
         value: v,
         itemStyle: { color: hay && !o.seleccion!.includes(o.categorias[i]) ? '#D9D5EA' : s.color, borderRadius: o.apilada ? (idx === o.series.length - 1 ? [8, 8, 0, 0] : 0) : [8, 8, 0, 0], borderColor: '#ffffff', borderWidth: o.apilada ? 2 : 0 },

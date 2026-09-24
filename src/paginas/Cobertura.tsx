@@ -25,10 +25,12 @@ export function Cobertura() {
   const { datos, f } = useTablero()
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set())
   const [q, setQ] = useState('')
+  const [institucionSel, setInstitucionSel] = useState<string[]>([])
+  const conInst = (v: string) => institucionSel.length === 0 || institucionSel.includes(v)
 
-  const filas = useMemo(() => datos.beneficiados.filter((b) => pasa(f, b.anio, b.municipio)), [datos, f])
-  const filasTodosAnios = useMemo(() => datos.beneficiados.filter((b) => pasa({ anios: [], municipios: f.municipios }, b.anio, b.municipio)), [datos, f.municipios])
-  const filasTodosMuni = useMemo(() => datos.beneficiados.filter((b) => pasa({ anios: f.anios, municipios: [] }, b.anio, b.municipio)), [datos, f.anios])
+  const filas = useMemo(() => datos.beneficiados.filter((b) => pasa(f, b.anio, b.municipio) && conInst(b.institucion)), [datos, f, institucionSel])
+  const filasTodosAnios = useMemo(() => datos.beneficiados.filter((b) => pasa({ anios: [], municipios: f.municipios }, b.anio, b.municipio) && conInst(b.institucion)), [datos, f.municipios, institucionSel])
+  const filasTodosMuni = useMemo(() => datos.beneficiados.filter((b) => pasa({ anios: f.anios, municipios: [] }, b.anio, b.municipio) && conInst(b.institucion)), [datos, f.anios, institucionSel])
 
   const arbolTabla = useMemo(() => {
     const munis = new Map<string, Map<string, Map<string, number>>>()
@@ -96,16 +98,24 @@ export function Cobertura() {
   const opcionAnios = useMemo(() => columnas({ categorias: anios.map(String), series: [{ nombre: 'Beneficiados', color: placa.main, datos: porAnio }], fmt: num, seleccion: f.anios.map(String) }), [anios, porAnio, f.anios]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const municipiosDisp = useMemo(() => [...new Set(datos.beneficiados.map((b) => b.municipio))].sort(alfa), [datos])
-  const grupos: GrupoFiltro[] = [{ clave: 'municipio', titulo: 'Municipio', opciones: municipiosDisp, valor: f.municipios, onChange: f.setMunicipios, abierto: true }]
+  const institucionesDisp = useMemo(() => [...new Set(datos.beneficiados.map((b) => b.institucion))].sort(alfa), [datos])
+  const grupos: GrupoFiltro[] = [
+    { clave: 'municipio', titulo: 'Municipio', opciones: municipiosDisp, valor: f.municipios, onChange: f.setMunicipios, abierto: true },
+    { clave: 'institucion', titulo: 'Institución Educativa', opciones: institucionesDisp, valor: institucionSel, onChange: setInstitucionSel },
+  ]
   const anioFiltro = { anios, valor: f.anios, onChange: f.setAnios }
   const etiquetas = etiquetasDe(anioFiltro, grupos)
   const tablaPares = (col: string, ps: { nombre: string; valor: number; cantidad: number }[], archivo: string) => ({ archivo, columnas: [{ clave: 'nombre', titulo: col }, { clave: 'valor', titulo: 'Beneficiados', tipo: 'numero' as const }, { clave: 'cantidad', titulo: 'Sedes', tipo: 'numero' as const }], filas: ps })
+  const limpiar = () => {
+    f.limpiar()
+    setInstitucionSel([])
+  }
 
   return (
     <>
       <PlacaCabecera placa={placa} titulo="Hasta dónde llega" texto="Estudiantes beneficiados por Modelos Educativos Flexibles, municipio por municipio, hasta cada sede. Es la suma de los años elegidos: quien se atendió en varios años puede contarse más de una vez." />
 
-      <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={f.limpiar} />} etiquetas={etiquetas} onLimpiar={f.limpiar}>
+      <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
           <MapaCaldas datos={datosMapa} extra={extraMapa} placa={placa} fmt={num} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta="Estudiantes beneficiados por municipio" />
           <div className="space-y-6">

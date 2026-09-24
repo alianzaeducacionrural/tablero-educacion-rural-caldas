@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
 import { Grafico } from '../components/Grafico'
 import { Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAnios } from '../components/Lamina'
@@ -16,13 +16,15 @@ const placa = PLACAS.resumen
 export function Resumen() {
   const { datos, f } = useTablero()
   const angosto = useAngosto()
+  const [institucionSel, setInstitucionSel] = useState<string[]>([])
+  const conInst = (v: string) => institucionSel.length === 0 || institucionSel.includes(v)
 
-  const base = useMemo(() => datos.base.filter((x) => pasa(f, x.anio, x.municipio)), [datos, f])
-  const baseMunicipios = useMemo(() => datos.base.filter((x) => pasa({ anios: f.anios, municipios: [] }, x.anio, x.municipio)), [datos, f.anios])
-  const baseAnios = useMemo(() => datos.base.filter((x) => pasa({ anios: [], municipios: f.municipios }, x.anio, x.municipio)), [datos, f.municipios])
-  const beneficiados = useMemo(() => datos.beneficiados.filter((b) => pasa(f, b.anio, b.municipio)), [datos, f])
+  const base = useMemo(() => datos.base.filter((x) => pasa(f, x.anio, x.municipio) && conInst(x.institucion)), [datos, f, institucionSel])
+  const baseMunicipios = useMemo(() => datos.base.filter((x) => pasa({ anios: f.anios, municipios: [] }, x.anio, x.municipio) && conInst(x.institucion)), [datos, f.anios, institucionSel])
+  const baseAnios = useMemo(() => datos.base.filter((x) => pasa({ anios: [], municipios: f.municipios }, x.anio, x.municipio) && conInst(x.institucion)), [datos, f.municipios, institucionSel])
+  const beneficiados = useMemo(() => datos.beneficiados.filter((b) => pasa(f, b.anio, b.municipio) && conInst(b.institucion)), [datos, f, institucionSel])
   // Un estudiante pertenece al año en que ingresó (su cohorte): así el filtro de año también lo mueve.
-  const estudiantes = useMemo(() => datos.estudiantes.filter((e) => /gobernaci/i.test(e.financiador) && pasa(f, e.anioIngreso, e.municipio)), [datos, f])
+  const estudiantes = useMemo(() => datos.estudiantes.filter((e) => /gobernaci/i.test(e.financiador) && pasa(f, e.anioIngreso, e.municipio) && conInst(e.institucion)), [datos, f, institucionSel])
 
   const total = sumar(base, (x) => x.valor)
   const valorDe = (re: RegExp) => sumar(base.filter((x) => re.test(x.aportante)), (x) => x.valor)
@@ -117,15 +119,23 @@ export function Resumen() {
   )
 
   const municipiosDisp = useMemo(() => [...new Set([...datos.base.map((x) => x.municipio), ...datos.beneficiados.map((b) => b.municipio)])].sort(alfa), [datos])
-  const grupos: GrupoFiltro[] = [{ clave: 'municipio', titulo: 'Municipio', opciones: municipiosDisp, valor: f.municipios, onChange: f.setMunicipios, abierto: true }]
+  const institucionesDisp = useMemo(() => [...new Set([...datos.base.map((x) => x.institucion), ...datos.beneficiados.map((b) => b.institucion)])].sort(alfa), [datos])
+  const grupos: GrupoFiltro[] = [
+    { clave: 'municipio', titulo: 'Municipio', opciones: municipiosDisp, valor: f.municipios, onChange: f.setMunicipios, abierto: true },
+    { clave: 'institucion', titulo: 'Institución Educativa', opciones: institucionesDisp, valor: institucionSel, onChange: setInstitucionSel },
+  ]
   const anioFiltro = { anios, valor: f.anios, onChange: f.setAnios }
   const etiquetas = etiquetasDe(anioFiltro, grupos)
+  const limpiar = () => {
+    f.limpiar()
+    setInstitucionSel([])
+  }
 
   return (
     <>
       <PlacaCabecera placa={placa} titulo="Resumen de la inversión" texto="Inversión en educación rural de Caldas, entre Modelos Educativos Flexibles y Universidad en el Campo: cuánto, quién lo aportó y a qué municipios llegó. Toca el mapa para filtrar todo lo demás." />
 
-      <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={f.limpiar} />} etiquetas={etiquetas} onLimpiar={f.limpiar}>
+      <ConFiltros panel={<PanelFiltros anios={anioFiltro} grupos={grupos} etiquetas={etiquetas} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
           <div className="space-y-6">
             <Cifra tam="md" valor={cop(total)} etiqueta={`invertidos en educación rural${f.anios.length ? `, ${[...f.anios].sort().join(', ')}` : rango ? `, ${rango}` : ''}`} />

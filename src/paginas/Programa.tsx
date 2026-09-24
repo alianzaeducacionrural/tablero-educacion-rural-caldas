@@ -94,7 +94,7 @@ export function Programa({ programa }: { programa: Prog }) {
     { clave: 'grupo', titulo: cfg.grupo, opciones: u((x) => x.grupo), valor: sel.grupo, onChange: set('grupo') },
     { clave: 'estado', titulo: 'Estado', opciones: u((x) => x.estado), valor: sel.estado, onChange: set('estado') },
     { clave: 'aportante', titulo: 'Aportante', opciones: u((x) => x.aportante), valor: sel.aportante, onChange: set('aportante') },
-    { clave: 'institucion', titulo: 'Institución', opciones: u(etiquetaInst), valor: sel.institucion, onChange: set('institucion') },
+    { clave: 'institucion', titulo: 'Institución Educativa', opciones: u(etiquetaInst), valor: sel.institucion, onChange: set('institucion') },
     { clave: 'actividad', titulo: 'Actividad', opciones: u((x) => x.actividad), valor: sel.actividad, onChange: set('actividad') },
   ]
   const anioFiltro = { anios, valor: f.anios, onChange: f.setAnios }

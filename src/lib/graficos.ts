@@ -206,6 +206,7 @@ export function columnas(o: { categorias: string[]; series: SerieCol[]; fmt: (n:
         fontWeight: 700,
         formatter: (p: { value: number }) => (p.value > 0 ? o.fmt(p.value) : ''),
       },
+      labelLayout: { hideOverlap: true },
       data: s.datos.map((v, i) => ({
         value: v,
         itemStyle: { color: hay && !o.seleccion!.includes(o.categorias[i]) ? '#D9D5EA' : s.color, borderRadius: o.apilada ? (idx === o.series.length - 1 ? [8, 8, 0, 0] : 0) : [8, 8, 0, 0], borderColor: '#ffffff', borderWidth: o.apilada ? 2 : 0 },

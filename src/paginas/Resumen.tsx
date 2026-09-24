@@ -177,9 +177,7 @@ export function Resumen() {
         </Seccion>
 
         <Seccion titulo="Distribución por municipio" nota="Modelos Educativos Flexibles frente a Universidad en el Campo, en cada municipio. Toca uno para filtrar; el valor es la inversión total.">
-          <div className="rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6">
-            <Grafico etiqueta="Distribución de la inversión por municipio, dividida entre Modelos Educativos Flexibles y Universidad en el Campo" alto={altoBarras(porMunicipioPrograma.length)} alClic={alMunicipio} opcion={opcionMunicipios} />
-          </div>
+          <Grafico etiqueta="Distribución de la inversión por municipio, dividida entre Modelos Educativos Flexibles y Universidad en el Campo" alto={altoBarras(porMunicipioPrograma.length)} alClic={alMunicipio} opcion={opcionMunicipios} />
         </Seccion>
 
         <Seccion titulo="Año por año" nota="Cómo cambió la inversión de un año al siguiente. Toca un año para filtrar." tabla={tablaAnioT}>

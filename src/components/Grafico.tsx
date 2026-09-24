@@ -48,5 +48,9 @@ export function Grafico({ opcion, alto, etiqueta, alClic }: Props) {
     chart.current?.setOption(opcion, true)
   }, [opcion])
 
-  return <div ref={ref} role="img" aria-label={etiqueta} style={{ height: alto, cursor: alClic ? 'pointer' : 'default' }} className="w-full" />
+  return (
+    <div className="w-full rounded-3xl bg-white p-4 ring-1 ring-line sm:p-5">
+      <div ref={ref} role="img" aria-label={etiqueta} style={{ height: alto, cursor: alClic ? 'pointer' : 'default' }} className="w-full" />
+    </div>
+  )
 }

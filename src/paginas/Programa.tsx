@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
 import { Grafico } from '../components/Grafico'
-import { BotonExcel, Cifra, MapaCaldas, PlacaCabecera, Seccion, TablaAniosDual } from '../components/Lamina'
+import { BotonExcel, Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAniosDual } from '../components/Lamina'
 import { RankingBarras } from '../components/Ranking'
 import { agrupar, agruparDoble, alfa, sumar, unicos } from '../lib/agregar'
 import { PLACAS, colorAportante, colorEstadoActividad } from '../lib/colores'
@@ -143,6 +143,9 @@ export function Programa({ programa }: { programa: Prog }) {
                 etiqueta={programa === 'mf' ? `estudiantes beneficiados${f.anios.length ? `, ${[...f.anios].sort().join(', ')}` : ''}` : `estudiantes técnicos financiados${f.anios.length ? `, ingreso ${[...f.anios].sort().join(', ')}` : ''}`}
               />
             </div>
+            <p className="text-lg leading-relaxed text-ink2">
+              En <Marca>{num(unicos(t, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(unicos(t.filter((x) => x.tipo === 'Institución'), (x) => `${x.municipio}|${x.institucion}`).size)} instituciones</Marca>, con <Marca>{num(unicos(t, (x) => x.actividad).size)} tipos de actividad</Marca>.
+            </p>
           </div>
         </div>
 
@@ -163,18 +166,17 @@ export function Programa({ programa }: { programa: Prog }) {
           </div>
         </Seccion>
 
-        <div className="grid items-start gap-12 2xl:grid-cols-2">
-          <Seccion titulo="Municipios" nota="Los que más recibieron." tabla={tablaMunicipioT}>
-            <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
-              <RankingBarras items={porMuni} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
-            </div>
-          </Seccion>
-          <Seccion titulo="Instituciones" nota="Las que más recibieron." tabla={tablaInstitucionT}>
-            <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
-              <RankingBarras items={dobles.institucion} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.institucion} onClic={alt('institucion')} limite={dobles.institucion.length} />
-            </div>
-          </Seccion>
-        </div>
+        <Seccion titulo="Municipios" nota="Los que más recibieron." tabla={tablaMunicipioT}>
+          <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
+            <RankingBarras items={porMuni} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
+          </div>
+        </Seccion>
+
+        <Seccion titulo="Instituciones" nota="Las que más recibieron." tono="lavado" tabla={tablaInstitucionT}>
+          <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
+            <RankingBarras items={dobles.institucion} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.institucion} onClic={alt('institucion')} limite={dobles.institucion.length} />
+          </div>
+        </Seccion>
 
         <div className="grid items-start gap-12 2xl:grid-cols-2">
           <Seccion titulo="Estado de la actividad" nota="Lo que está dentro del convenio frente a lo que se hizo además." tabla={tablaEstadoT}>

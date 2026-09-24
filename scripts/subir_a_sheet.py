@@ -2,7 +2,8 @@
 """Sube los CSV de datos/sheet al Google Sheet a través del Web App (acción `sembrar`) y verifica lo subido.
 
 Necesita en .env:  API_URL=<URL /exec del Web App>   y   ADMIN_TOKEN=<clave de administración>
-Reemplaza el contenido de cada pestaña.
+Reemplaza el contenido de cada pestaña. Sin argumentos sube todas; con nombres de pestaña (p. ej. `estudiantes`)
+sube solo esas y deja intacto el resto, que puede tener registros hechos desde el panel de administración.
 """
 import json
 import subprocess
@@ -51,11 +52,17 @@ def main():
     if not url or not token:
         raise SystemExit("[ERROR] Falta API_URL o ADMIN_TOKEN en .env")
 
+    pedidas = sys.argv[1:]
+    desconocidas = [h for h in pedidas if h not in HOJAS]
+    if desconocidas:
+        raise SystemExit(f"[ERROR] Pestañas desconocidas: {desconocidas}. Válidas: {list(HOJAS)}")
+    hojas = [h for h in HOJAS if h in pedidas] if pedidas else list(HOJAS)
+
     print("Comprobando conexión…")
     if not llamar(url + "?action=ping").get("ok"):
         raise SystemExit("[ERROR] ping falló")
 
-    for nombre in HOJAS:
+    for nombre in hojas:
         columnas, filas = leer_hoja(nombre)
         r = llamar(url, {"token": token, "action": "sembrar", "hoja": nombre, "columnas": columnas, "filas": filas, "quien": "siembra"})
         if not r.get("ok"):
@@ -65,7 +72,7 @@ def main():
     print("\nVerificando lo que quedó en el Sheet…")
     leido = llamar(url + "?action=datos")["hojas"]
     fallos = 0
-    for nombre in HOJAS:
+    for nombre in hojas:
         if nombre == "auditoria":
             continue
         columnas, filas = leer_hoja(nombre)

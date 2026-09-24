@@ -4,7 +4,9 @@
 - Normaliza mayúsculas, tildes y espacios (misma cosa escrita distinto = un solo valor).
 - `- Convocado - No Asistió` NO se fusiona: se convierte en la columna `asistio`.
 - Añade `tipo_beneficiario` (Institución / Grupo / Red de maestros / Microcentro).
-- Estudiantes: solo Financiador = Gobernación y SIN nombres (el tablero es público).
+- Estudiantes: todos los aportantes (Gobernación y otros aliados) y SIN nombres (el tablero es público).
+- Estado de los estudiantes: si existe el Listado General (cohortes 2024 en adelante), su estado actualizado
+  reemplaza al del Excel de Drive. El cruce usa el nombre solo en memoria; nunca sale en los CSV.
 - Falla si la normalización cambia filas o totales, o si algún nombre de estudiante llega a la salida.
 """
 import argparse
@@ -12,6 +14,7 @@ import re
 import sys
 import unicodedata
 from collections import Counter, defaultdict
+from difflib import SequenceMatcher
 from pathlib import Path
 
 import pandas as pd
@@ -26,7 +29,7 @@ FOTO = {
     "uc_filas": 740, "uc_valor": 2816620848,
     "consolidado": 5812501195,
     "depto": 5100432060, "comite": 712069135,
-    "beneficiados": 34279, "estudiantes": 1684,
+    "beneficiados": 34279, "estudiantes": 2342,
 }
 
 CONVOCADO = re.compile(r"\s*-\s*convocado\s*-\s*no\s+asisti[oó]\s*$", re.I)
@@ -113,6 +116,65 @@ def leer(path, hoja, renombrar, esperadas=None):
     return df[list(renombrar)].rename(columns=renombrar)
 
 
+def actualizar_estado(est, nombre_est, ruta):
+    """Reemplaza `estado` con el del Listado General (solo cohortes que trae, hoy 2024 en adelante).
+
+    Cruce por nombre plegado y misma cohorte. Primero exacto; luego, para lo que queda, parecido (>= 0.92, mismo
+    municipio, candidato único) porque el mismo estudiante aparece a veces con tildes u orden de apellidos distinto.
+    Los nombres se usan solo aquí, en memoria. Devuelve un resumen (sin nombres) para el reporte."""
+    lst = pd.read_excel(ruta, usecols=["Nombre Completo", "Municipio", "Cohorte", "Estado"])
+    lst["k"] = lst["Nombre Completo"].map(plegar)
+    lst["muni"] = lst["Municipio"].map(plegar)
+    lst["cohorte"] = pd.to_numeric(lst["Cohorte"], errors="coerce")
+    lst = lst[lst["k"] != ""].copy()
+
+    canon = {plegar(e): e for e in est["estado"].unique()}  # respeta la escritura ya usada ("Activo", "Graduado"…)
+
+    def estado_canonico(e):
+        p = plegar(e)
+        return canon.get(p, limpiar(e).capitalize())
+
+    viejo = pd.DataFrame({"k": nombre_est, "muni": est["municipio"].map(plegar), "cohorte": pd.to_numeric(est["anio_ingreso"], errors="coerce")})
+    n_viejo = viejo["k"].value_counts()
+    n_lista = lst["k"].value_counts()
+
+    usados, cruces = set(), {}  # índice de est -> fila de la lista
+    for i, r in lst.iterrows():
+        if n_lista[r["k"]] != 1:
+            continue
+        cand = viejo.index[(viejo["k"] == r["k"]) & (viejo["cohorte"] == r["cohorte"])]
+        if len(cand) == 1 and n_viejo[r["k"]] == 1:
+            cruces[cand[0]] = i
+            usados.add(i)
+    exactos = len(cruces)
+
+    libres = viejo[~viejo.index.isin(cruces)]
+    difusos = 0
+    for i, r in lst.iterrows():
+        if i in usados:
+            continue
+        pool = libres[(libres["cohorte"] == r["cohorte"]) & (libres["muni"] == r["muni"]) & ~libres.index.isin(cruces)]
+        if pool.empty:
+            continue
+        sc = sorted(((SequenceMatcher(None, " ".join(sorted(r["k"].split())), " ".join(sorted(k.split()))).ratio(), j) for j, k in pool["k"].items()), reverse=True)
+        if sc[0][0] >= 0.92 and (len(sc) == 1 or sc[0][0] - sc[1][0] >= 0.05):
+            cruces[sc[0][1]] = i
+            usados.add(i)
+            difusos += 1
+
+    cambios = Counter()
+    for j, i in cruces.items():
+        nuevo = estado_canonico(lst.at[i, "Estado"])
+        if plegar(est.at[j, "estado"]) != plegar(nuevo):
+            cambios[(est.at[j, "estado"], nuevo)] += 1
+            est.at[j, "estado"] = nuevo
+    return {
+        "lista": len(lst), "exactos": exactos, "difusos": difusos, "sin_cruce": len(lst) - len(usados),
+        "cambios": cambios, "cohortes": sorted(int(c) for c in lst["cohorte"].dropna().unique()),
+        "nombres": set(lst["k"]),
+    }
+
+
 def leer_metas(path, n_cols, nombres):
     df = pd.read_excel(path, sheet_name="Gobernación").iloc[:, :n_cols]
     df.columns = nombres
@@ -128,6 +190,7 @@ def main():
     ap.add_argument("--uc-drive", type=Path, default=docs / "origen-drive" / "U Campo - Gobernación.xlsx")
     ap.add_argument("--mf-raiz", type=Path, default=docs / "Informe Modelos Flexibles.xlsx")
     ap.add_argument("--uc-raiz", type=Path, default=docs / "Informe U Campo.xlsx")
+    ap.add_argument("--estado-tecnicos", type=Path, default=docs / "estado técnicos" / "Listado_General_Estudiantes.xlsx", help="Listado General con el estado actualizado de los estudiantes (cohortes 2024 en adelante). Opcional.")
     ap.add_argument("--vigencia-metas", type=int, default=2024, help="Vigencia a la que se asignan las metas (PROVISIONAL).")
     ap.add_argument("--out", type=Path, default=RAIZ / "datos" / "sheet")
     a = ap.parse_args()
@@ -146,7 +209,8 @@ def main():
     est_todo = pd.read_excel(a.uc_drive, sheet_name="Estudiantes")
     nombres = {plegar(n) for n in est_todo["Nombres y Apellidos"].dropna()}
     est = leer(a.uc_drive, "Estudiantes", {"Año": "anio_ingreso", "Municipio": "municipio", "Institución Educativa": "institucion", "Universidad": "universidad", "Programa": "programa", "Género": "genero", "Estado": "estado", "Financiador": "financiador", "Año Graduación": "anio_graduacion"})
-    est = est[est["financiador"].map(plegar) == "gobernacion"].copy()
+    # Nombre de cada estudiante, alineado con `est` (mismo índice): solo sirve para cruzar con el Listado General.
+    nombre_est = est_todo["Nombres y Apellidos"].map(lambda x: plegar(x) if pd.notna(x) else "")
 
     metas_mf = leer_metas(a.mf_raiz, 10, ["proyecto", "actividad", "valor_unitario", "meta", "valor_meta", "ejecutado", "valor_ejecutado", "faltante", "valor_faltante", "adicional"])
     metas_uc = leer_metas(a.uc_raiz, 13, ["proceso", "actividad", "valor_unitario", "meta", "valor_meta", "ejecutado", "valor_ejecutado", "faltante", "valor_faltante", "adicional", "reinversion", "departamento", "comite"])
@@ -215,6 +279,11 @@ def main():
         df["estado"] = df["estado"].map(limpiar)
     est["genero"] = est["genero"].map(limpiar)
     est["financiador"] = est["financiador"].map(limpiar)
+
+    cruce = None
+    if a.estado_tecnicos.exists():
+        cruce = actualizar_estado(est, nombre_est, a.estado_tecnicos)
+        nombres |= cruce["nombres"]  # el Listado también cuenta para la revisión de fugas de nombres
 
     for df in (mf, uc):
         df["tipo_beneficiario"] = df["institucion"].map(tipo_beneficiario)
@@ -290,7 +359,17 @@ def main():
     exige(len(out_uc) == src["uc_filas"] and round(v_uc) == round(src["uc_valor"]), f"U Campo: {len(out_uc)} filas, ${v_uc:,.0f} (origen {src['uc_filas']} / ${src['uc_valor']:,.0f})")
     exige(abs(out_uc["cantidad"].astype(float).sum() - src["uc_cant"]) < 0.01, "U Campo: cantidad total intacta")
     exige(len(ben) == src["ben_filas"] and int(ben["beneficiados"].astype(float).sum()) == int(src["ben_total"]), f"Beneficiados: {len(ben)} filas, {int(ben['beneficiados'].astype(float).sum()):,}")
-    exige(len(est) == src["est_filas"], f"Estudiantes (Gobernación): {len(est)} filas")
+    exige(len(est) == src["est_filas"], f"Estudiantes (todos los aportantes): {len(est)} filas")
+    if cruce:
+        p("\n=== ESTADO DE ESTUDIANTES (Listado General) ===")
+        p(f"  Cohortes en el Listado: {cruce['cohortes']} · {cruce['lista']} estudiantes")
+        p(f"  Cruzados por nombre exacto: {cruce['exactos']} · por nombre parecido (mismo municipio y cohorte): {cruce['difusos']}")
+        p(f"  Del Listado sin cruzar con el Excel de Drive (no se agregan: no traen financiador ni año de grado): {cruce['sin_cruce']}")
+        p(f"  Estados que cambiaron: {sum(cruce['cambios'].values())}")
+        for (antes, despues), n in cruce["cambios"].most_common():
+            p(f"    {antes} -> {despues}: {n}")
+        p(f"  Estados resultantes: {dict(est['estado'].value_counts())}")
+    p(f"  Financiador: {dict(est['financiador'].value_counts())}")
     exige(not sin_mapa, f"Todas las metas cruzan con la base (sin cruce: {sin_mapa})")
 
     p("\n=== PRIVACIDAD ===")

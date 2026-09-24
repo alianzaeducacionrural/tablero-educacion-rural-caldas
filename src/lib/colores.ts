@@ -138,6 +138,7 @@ export function colorAportante(aportante: string): string {
 }
 export function colorEstadoEstudiante(estado: string): string {
   if (/pendiente/i.test(estado)) return '#FFB000'
+  if (/riesgo/i.test(estado)) return '#FF7A45'
   if (/gradu/i.test(estado)) return '#12A150'
   if (/desert/i.test(estado)) return '#E5383B'
   return '#2F6BFF'

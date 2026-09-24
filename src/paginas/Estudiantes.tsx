@@ -14,7 +14,7 @@ import { pasa, useTablero } from '../lib/usarFiltrado'
 type Local = 'universidad' | 'programa' | 'estado' | 'institucion' | 'financiador'
 type Dim = Local | 'municipio' | 'anio'
 const placa = PLACAS.estudiantes
-const ORDEN_ESTADO = ['Graduado', 'Activo', 'Pendiente de grado', 'Desertor']
+const ORDEN_ESTADO = ['Graduado', 'Activo', 'Pendiente de grado', 'En riesgo', 'Desertor']
 const ordenEstado = (e: string) => (ORDEN_ESTADO.indexOf(e) < 0 ? 99 : ORDEN_ESTADO.indexOf(e))
 const VACIO: Record<Local, string[]> = { universidad: [], programa: [], estado: [], institucion: [], financiador: [] }
 /** Gobernación de Caldas frente al resto de aliados que financian estudiantes. */
@@ -75,7 +75,7 @@ export function Estudiantes() {
   const pUni = useMemo(() => conAportante(vistas.universidad, (e) => e.universidad), [vistas.universidad]) // eslint-disable-line react-hooks/exhaustive-deps
   const opcionUni = useMemo(() => apiladasH({ filas: filasAportante(pUni), fmt: num, mostrarTotal: true }), [pUni]) // eslint-disable-line react-hooks/exhaustive-deps
   const pProg = useMemo(() => conAportante(vistas.programa, (e) => abrevPrograma(e.programa)), [vistas.programa]) // eslint-disable-line react-hooks/exhaustive-deps
-  const opcionProg = useMemo(() => apiladasH({ filas: filasAportante(pProg), fmt: num, mostrarTotal: true }), [pProg]) // eslint-disable-line react-hooks/exhaustive-deps
+  const opcionProg = useMemo(() => apiladasH({ filas: filasAportante(pProg), fmt: num, mostrarTotal: true, ancho: 330 }), [pProg]) // eslint-disable-line react-hooks/exhaustive-deps
   const pGenero = agrupar(t, (e) => e.genero || 'Sin dato', () => 1)
   const coloresGenero = ['#0B8F58', '#7B5CFF', '#FFB000', '#17A6B8']
   const opcionGenero = useMemo(() => dona({ partes: pGenero.map((g, i) => ({ nombre: g.nombre, valor: g.valor, color: coloresGenero[i % coloresGenero.length] })), centro: num(t.length), sub: 'estudiantes', fmt: num }), [pGenero, t.length]) // eslint-disable-line react-hooks/exhaustive-deps

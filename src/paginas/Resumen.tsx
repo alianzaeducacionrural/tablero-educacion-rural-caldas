@@ -39,33 +39,26 @@ export function Resumen() {
   const maxMuni = porMunicipio[0]?.valor || 1
   const rankingMuni = porMunicipio.map((p) => ({ nombre: p.nombre, valor: p.valor, color: placa.escala[Math.min(6, Math.floor(Math.sqrt(p.valor / maxMuni) * 7))] }))
 
-  // Aportante → programa → proyecto/proceso
+  // Programa → proyecto/proceso
   const arbol = useMemo<Nodo[]>(() => {
-    const porAport = new Map<string, Map<Programa, Map<string, number>>>()
+    const porPrograma = new Map<Programa, Map<string, number>>()
     base.forEach((x) => {
       if (x.valor <= 0) return
-      const a = x.aportante || 'Sin aportante'
-      const pm = porAport.get(a) ?? new Map<Programa, Map<string, number>>()
-      const gm = pm.get(x.programa) ?? new Map<string, number>()
+      const gm = porPrograma.get(x.programa) ?? new Map<string, number>()
       gm.set(x.grupo, (gm.get(x.grupo) ?? 0) + x.valor)
-      pm.set(x.programa, gm)
-      porAport.set(a, pm)
+      porPrograma.set(x.programa, gm)
     })
-    return [...porAport.entries()].map(([a, pm]) => ({
-      name: a,
-      color: colorAportante(a),
-      children: [...pm.entries()].map(([p, gm]) => ({
-        name: PROGRAMAS[p].nombre,
-        color: colorPrograma(p),
-        children: [...gm.entries()].sort((x, y) => y[1] - x[1]).map(([g, v], i) => ({ name: g, value: v, color: aclarar(colorPrograma(p), Math.min(0.55, 0.12 + i * 0.1)) })),
-      })),
+    return [...porPrograma.entries()].map(([p, gm]) => ({
+      name: PROGRAMAS[p].nombre,
+      color: colorPrograma(p),
+      children: [...gm.entries()].sort((x, y) => y[1] - x[1]).map(([g, v], i) => ({ name: g, value: v, color: aclarar(colorPrograma(p), Math.min(0.55, 0.12 + i * 0.1)) })),
     }))
   }, [base])
   const tablaFlujo = useMemo(() => {
-    const m = new Map<string, { aportante: string; programa: string; grupo: string; valor: number }>()
+    const m = new Map<string, { programa: string; grupo: string; valor: number }>()
     base.forEach((x) => {
-      const id = `${x.aportante}|${x.programa}|${x.grupo}`
-      const e = m.get(id) ?? { aportante: x.aportante || 'Sin aportante', programa: PROGRAMAS[x.programa].nombre, grupo: x.grupo, valor: 0 }
+      const id = `${x.programa}|${x.grupo}`
+      const e = m.get(id) ?? { programa: PROGRAMAS[x.programa].nombre, grupo: x.grupo, valor: 0 }
       e.valor += x.valor
       m.set(id, e)
     })
@@ -123,13 +116,12 @@ export function Resumen() {
         </div>
 
         <Seccion
-          titulo="¿De dónde viene y a dónde va?"
-          nota="Del aportante al programa y al proyecto o proceso."
+          titulo="¿A dónde va el recurso?"
+          nota="Del programa al proyecto o proceso."
           tono="lavado"
           tabla={{
             archivo: 'distribucion-del-recurso',
             columnas: [
-              { clave: 'aportante', titulo: 'Aportante' },
               { clave: 'programa', titulo: 'Programa' },
               { clave: 'grupo', titulo: 'Proyecto / proceso' },
               { clave: 'valor', titulo: 'Valor', tipo: 'moneda' },
@@ -137,7 +129,7 @@ export function Resumen() {
             filas: tablaFlujo,
           }}
         >
-          <Grafico etiqueta="Distribución del recurso por aportante, programa y proyecto" alto={angosto ? 380 : 600} opcion={opcionSol} />
+          <Grafico etiqueta="Distribución del recurso por programa y proyecto" alto={angosto ? 380 : 600} opcion={opcionSol} />
         </Seccion>
 
         <Seccion titulo="Los municipios que más recibieron" nota="Toca uno para filtrar. La barra muestra su parte de la inversión." tabla={{ archivo: 'inversion-por-municipio', columnas: [{ clave: 'nombre', titulo: 'Municipio' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' }], filas: porMunicipio.map((p) => ({ nombre: p.nombre, valor: p.valor })) }}>

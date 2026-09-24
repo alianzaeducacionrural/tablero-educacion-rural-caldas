@@ -311,7 +311,7 @@ function pintar(n: Nodo): Record<string, unknown> {
 export function sunburst(o: { arbol: Nodo[]; fmt: (n: number) => string; centro: string; sub?: string; compacto?: boolean }): EChartsCoreOption {
   const c = comun()
   const oculto = { show: false }
-  const niveles = [{}, { r0: '24%', r: '47%', label: o.compacto ? { rotate: 0, fontSize: 10, minAngle: 40 } : { rotate: 0, fontWeight: 700, fontSize: 13, minAngle: 22 } }, { r0: '47%', r: '72%', label: o.compacto ? oculto : { rotate: 'tangential', minAngle: 50 } }, { r0: '72%', r: '98%', label: o.compacto ? oculto : { rotate: 'radial', minAngle: 24 } }]
+  const niveles = [{}, { r0: '22%', r: '54%', label: o.compacto ? { rotate: 'tangential', fontSize: 10, minAngle: 40 } : { rotate: 'tangential', fontWeight: 700, fontSize: 13, minAngle: 30 } }, { r0: '54%', r: '98%', label: o.compacto ? oculto : { rotate: 'radial', minAngle: 24 } }]
   return {
     ...c,
     tooltip: { ...c.tooltip, trigger: 'item', formatter: (p: { name: string; value: number; treePathInfo?: { name: string }[] }) => `${esc((p.treePathInfo ?? []).map((x) => x.name).join(' › ') || p.name)}<br/><b>${o.fmt(p.value)}</b>` },
@@ -328,7 +328,7 @@ export function sunburst(o: { arbol: Nodo[]; fmt: (n: number) => string; centro:
       {
         type: 'sunburst',
         data: o.arbol.map(pintar),
-        radius: ['24%', '98%'],
+        radius: ['22%', '98%'],
         center: ['50%', '50%'],
         nodeClick: false,
         startAngle: 90,

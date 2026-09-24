@@ -6,7 +6,7 @@ import { BotonExcel, Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAnio
 import { RankingBarras } from '../components/Ranking'
 import { alfa, sumar, unicos } from '../lib/agregar'
 import { PLACAS } from '../lib/colores'
-import { alternar } from '../lib/filtros'
+import { alternar, fraseAnios, fraseFiltros, fraseValores } from '../lib/filtros'
 import { num } from '../lib/formato'
 import { columnas } from '../lib/graficos'
 import { pasa, useTablero } from '../lib/usarFiltrado'
@@ -110,6 +110,7 @@ export function Cobertura() {
     f.limpiar()
     setInstitucionSel([])
   }
+  const contextoFiltros = fraseFiltros(fraseAnios(f.anios, anios), fraseValores(f.municipios, 'municipios'), fraseValores(institucionSel, 'instituciones'))
 
   const tablaAnioT = { archivo: 'beneficiados-por-anio', columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'n', titulo: 'Beneficiados', tipo: 'numero' as const }], filas: anios.map((a, i) => ({ anio: String(a), n: porAnio[i] })) }
   const tablaMunicipioT = tablaPares('Municipio', porMuni, 'beneficiados-por-municipio')
@@ -139,6 +140,7 @@ export function Cobertura() {
             <Cifra tam="lg" valor={num(total)} etiqueta="estudiantes beneficiados" />
             <p className="text-lg leading-relaxed text-ink2">
               En <Marca>{num(unicos(filas, (b) => b.municipio).size)} municipios</Marca>, <Marca>{num(unicos(filas, (b) => `${b.municipio}|${b.institucion}`).size)} instituciones</Marca> y <Marca>{num(unicos(filas, (b) => `${b.municipio}|${b.institucion}|${b.sede}`).size)} sedes</Marca>.
+              {contextoFiltros && <> Datos de {contextoFiltros}.</>}
             </p>
           </div>
         </div>

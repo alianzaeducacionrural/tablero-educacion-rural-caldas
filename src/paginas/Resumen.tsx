@@ -5,7 +5,7 @@ import { BotonExcel, Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAnio
 import { agrupar, alfa, sumar, unicos } from '../lib/agregar'
 import { useAngosto } from '../lib/angosto'
 import { PLACAS, colorAportante, colorPrograma } from '../lib/colores'
-import { alternar } from '../lib/filtros'
+import { alternar, fraseAnios, fraseFiltros, fraseValores } from '../lib/filtros'
 import { cop, num } from '../lib/formato'
 import { aclarar, altoBarras, apiladasH, columnas, pastel, sunburst, type Nodo } from '../lib/graficos'
 import { PROGRAMAS, type Programa } from '../lib/tipos'
@@ -130,6 +130,7 @@ export function Resumen() {
     f.limpiar()
     setInstitucionSel([])
   }
+  const contextoFiltros = fraseFiltros(fraseAnios(f.anios, anios), fraseValores(f.municipios, 'municipios'), fraseValores(institucionSel, 'instituciones'))
 
   const tablaFlujoT = { archivo: 'distribucion-del-recurso', columnas: [{ clave: 'programa', titulo: 'Programa' }, { clave: 'grupo', titulo: 'Proyecto / proceso' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const }], filas: tablaFlujo }
   const tablaMunicipioT = { archivo: 'inversion-por-municipio', columnas: [{ clave: 'nombre', titulo: 'Municipio' }, { clave: 'mf', titulo: 'Modelos Educativos Flexibles', tipo: 'moneda' as const }, { clave: 'uc', titulo: 'Universidad en el Campo', tipo: 'moneda' as const }, { clave: 'total', titulo: 'Total', tipo: 'moneda' as const }], filas: porMunicipioPrograma.map((p) => ({ nombre: p.nombre, mf: p.mf, uc: p.uc, total: p.mf + p.uc })) }
@@ -165,8 +166,8 @@ export function Resumen() {
           <div className="space-y-6">
             <Cifra tam="md" valor={cop(total)} etiqueta={`invertidos en educación rural${f.anios.length ? `, ${[...f.anios].sort().join(', ')}` : rango ? `, ${rango}` : ''}`} />
             <p className="text-lg leading-relaxed text-ink2">
-              Llegó a <Marca>{num(unicos(base, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(instituciones)} instituciones</Marca>. Beneficiaron a <Marca>{num(sumar(beneficiados, (b) => b.beneficiados))} estudiantes</Marca> y financiaron a <Marca>{num(estudiantes.length)} estudiantes técnicos</Marca>{f.anios.length > 0 && <> que ingresaron en {f.anios.join(', ')}</>}
-              .
+              Llegó a <Marca>{num(unicos(base, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(instituciones)} instituciones</Marca>. Beneficiaron a <Marca>{num(sumar(beneficiados, (b) => b.beneficiados))} estudiantes</Marca> y financiaron a <Marca>{num(estudiantes.length)} estudiantes técnicos</Marca>.
+              {contextoFiltros && <> Datos de {contextoFiltros}.</>}
             </p>
           </div>
           <MapaCaldas datos={datosMapa} placa={placa} fmt={cop} seleccion={f.municipios} alClic={alMunicipio} etiqueta="Mapa de Caldas coloreado por inversión de cada municipio" />

@@ -65,3 +65,21 @@ export function useFiltros() {
 export function alternar<T>(lista: T[], v: T): T[] {
   return lista.includes(v) ? lista.filter((x) => x !== v) : [...lista, v]
 }
+
+/** Años para mencionar en un texto: nada si no hay selección o si están todos los disponibles. */
+export function fraseAnios(seleccion: number[], disponibles: number[]): string {
+  if (seleccion.length === 0 || seleccion.length >= disponibles.length) return ''
+  return [...seleccion].sort((a, b) => a - b).join(', ')
+}
+
+/** Nombra un filtro de texto (municipio, institución…): el/los nombres si hay 1 o 2, o la cantidad si hay más. */
+export function fraseValores(seleccion: string[], plural: string): string {
+  if (seleccion.length === 0) return ''
+  if (seleccion.length <= 2) return [...seleccion].sort((a, b) => a.localeCompare(b, 'es')).join(' y ')
+  return `${seleccion.length} ${plural}`
+}
+
+/** Une los filtros activos (año, municipio, institución…) en una frase corta para insertar en un texto. */
+export function fraseFiltros(...partes: string[]): string {
+  return partes.filter(Boolean).join(' · ')
+}

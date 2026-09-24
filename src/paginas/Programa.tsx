@@ -5,7 +5,7 @@ import { BotonExcel, Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAnio
 import { RankingBarras } from '../components/Ranking'
 import { agrupar, agruparDoble, alfa, sumar, unicos } from '../lib/agregar'
 import { PLACAS, colorAportante, colorEstadoActividad } from '../lib/colores'
-import { alternar } from '../lib/filtros'
+import { alternar, fraseAnios, fraseFiltros, fraseValores } from '../lib/filtros'
 import { cant, cop, num } from '../lib/formato'
 import { columnas, pastel } from '../lib/graficos'
 import { PROGRAMAS, type FilaBase, type Programa as Prog } from '../lib/tipos'
@@ -104,6 +104,7 @@ export function Programa({ programa }: { programa: Prog }) {
     setSel(VACIO)
   }
   const alt = (d: Local) => (n: string) => setSel((s) => ({ ...s, [d]: alternar(s[d], n) }))
+  const contextoFiltros = fraseFiltros(fraseAnios(f.anios, anios), fraseValores(f.municipios, 'municipios'), fraseValores(sel.institucion, 'instituciones'))
 
   const tablaDoble = (col: string, ds: { nombre: string; valor: number; cantidad: number }[], archivo: string) => ({ archivo, columnas: [{ clave: 'nombre', titulo: col }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const }, { clave: 'cantidad', titulo: 'Actividades', tipo: 'cantidad' as const }], filas: ds })
   const coloresGrupo = Object.fromEntries(dobles.grupo.map((g, i) => [g.nombre, placa.apoyo[i % placa.apoyo.length]]))
@@ -145,6 +146,7 @@ export function Programa({ programa }: { programa: Prog }) {
             </div>
             <p className="text-lg leading-relaxed text-ink2">
               En <Marca>{num(unicos(t, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(unicos(t.filter((x) => x.tipo === 'Institución'), (x) => `${x.municipio}|${x.institucion}`).size)} instituciones</Marca>, con <Marca>{num(unicos(t, (x) => x.actividad).size)} tipos de actividad</Marca>.
+              {contextoFiltros && <> Datos de {contextoFiltros}.</>}
             </p>
           </div>
         </div>

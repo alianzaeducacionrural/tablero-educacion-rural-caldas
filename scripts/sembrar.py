@@ -287,6 +287,12 @@ def main():
         cruce = actualizar_estado(est, nombre_est, a.estado_tecnicos)
         nombres |= cruce["nombres"]  # el Listado también cuenta para la revisión de fugas de nombres
 
+    # Decisión del equipo: quien sigue Activo habiendo ingresado en 2024 o antes está pendiente de grado.
+    ESTADO_PENDIENTE = next((e for e in est["estado"].unique() if plegar(e) == "pendiente de grado"), "Pendiente de grado")
+    a_pendiente = (est["estado"].map(plegar) == "activo") & (pd.to_numeric(est["anio_ingreso"], errors="coerce") <= 2024)
+    n_a_pendiente = int(a_pendiente.sum())
+    est.loc[a_pendiente, "estado"] = ESTADO_PENDIENTE
+
     for df in (mf, uc):
         df["tipo_beneficiario"] = df["institucion"].map(tipo_beneficiario)
 
@@ -371,6 +377,8 @@ def main():
         for (antes, despues), n in cruce["cambios"].most_common():
             p(f"    {antes} -> {despues}: {n}")
         p(f"  Estados resultantes: {dict(est['estado'].value_counts())}")
+    p(f"  Activos con ingreso en 2024 o antes pasados a '{ESTADO_PENDIENTE}': {n_a_pendiente}")
+    p(f"  Estados finales: {dict(est['estado'].value_counts())}")
     p(f"  Financiador: {dict(est['financiador'].value_counts())}")
     exige(not sin_mapa, f"Todas las metas cruzan con la base (sin cruce: {sin_mapa})")
 

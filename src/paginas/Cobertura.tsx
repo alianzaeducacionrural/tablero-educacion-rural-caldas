@@ -140,7 +140,7 @@ export function Cobertura() {
             <Cifra tam="lg" valor={num(total)} etiqueta="estudiantes beneficiados" />
             <p className="text-lg leading-relaxed text-ink2">
               En <Marca>{num(unicos(filas, (b) => b.municipio).size)} municipios</Marca>, <Marca>{num(unicos(filas, (b) => `${b.municipio}|${b.institucion}`).size)} instituciones</Marca> y <Marca>{num(unicos(filas, (b) => `${b.municipio}|${b.institucion}|${b.sede}`).size)} sedes</Marca>.
-              {contextoFiltros && <> Datos de {contextoFiltros}.</>}
+              {contextoFiltros && <> Datos de <Marca>{contextoFiltros}</Marca>.</>}
             </p>
           </div>
         </div>

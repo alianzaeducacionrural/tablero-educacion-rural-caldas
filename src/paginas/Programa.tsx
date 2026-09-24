@@ -139,16 +139,16 @@ export function Programa({ programa }: { programa: Prog }) {
           <MapaCaldas datos={datosMapa} extra={extraMapa} placa={placa} fmt={cop} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta={`Valor de ${cfg.nombre} por municipio`} />
           <div className="space-y-6 rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-1">
-              <Cifra tam="md" valor={cop(total)} etiqueta="invertidos (valor)" />
+              <Cifra tam="md" valor={cop(total)} etiqueta="Invertidos" />
               <Cifra
                 tam="md"
                 valor={num(estudiantesAtendidos)}
-                etiqueta={programa === 'mf' ? `estudiantes beneficiados${f.anios.length ? `, ${[...f.anios].sort().join(', ')}` : ''}` : `estudiantes técnicos financiados${f.anios.length ? `, ingreso ${[...f.anios].sort().join(', ')}` : ''}`}
+                etiqueta={programa === 'mf' ? `Estudiantes beneficiados${f.anios.length ? `, ${[...f.anios].sort().join(', ')}` : ''}` : `Estudiantes técnicos financiados${f.anios.length ? `, ingreso ${[...f.anios].sort().join(', ')}` : ''}`}
               />
             </div>
             <p className="text-lg leading-relaxed text-ink2">
-              En <Marca>{num(unicos(t, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(unicos(t.filter((x) => x.tipo === 'Institución'), (x) => `${x.municipio}|${x.institucion}`).size)} instituciones</Marca>, con <Marca>{num(unicos(t, (x) => x.actividad).size)} tipos de actividad</Marca>.
-              {contextoFiltros && <> Datos de {contextoFiltros}.</>}
+              En <Marca>{num(unicos(t, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(unicos(t.filter((x) => x.tipo === 'Institución'), (x) => `${x.municipio}|${x.institucion}`).size)} instituciones</Marca>.
+              {contextoFiltros && <> Datos de <Marca>{contextoFiltros}</Marca>.</>}
             </p>
           </div>
         </div>

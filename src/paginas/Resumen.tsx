@@ -2,13 +2,12 @@ import { useMemo } from 'react'
 import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
 import { Grafico } from '../components/Grafico'
 import { Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAnios } from '../components/Lamina'
-import { RankingBarras } from '../components/Ranking'
 import { agrupar, alfa, sumar, unicos } from '../lib/agregar'
 import { useAngosto } from '../lib/angosto'
 import { PLACAS, colorAportante, colorPrograma } from '../lib/colores'
 import { alternar } from '../lib/filtros'
 import { cop, num } from '../lib/formato'
-import { aclarar, columnas, pastel, sunburst, type Nodo } from '../lib/graficos'
+import { aclarar, altoBarras, apiladasH, columnas, pastel, sunburst, type Nodo } from '../lib/graficos'
 import { PROGRAMAS, type Programa } from '../lib/tipos'
 import { pasa, useTablero } from '../lib/usarFiltrado'
 
@@ -36,8 +35,31 @@ export function Resumen() {
   const porMunicipio = useMemo(() => agrupar(baseMunicipios, (x) => x.municipio, (x) => x.valor), [baseMunicipios])
   const datosMapa = useMemo(() => porMunicipio.map((p) => ({ name: p.nombre, value: p.valor })), [porMunicipio])
   const alMunicipio = (n: string) => f.setMunicipios(alternar(f.municipios, n))
-  const maxMuni = porMunicipio[0]?.valor || 1
-  const rankingMuni = porMunicipio.map((p) => ({ nombre: p.nombre, valor: p.valor, color: placa.escala[Math.min(6, Math.floor(Math.sqrt(p.valor / maxMuni) * 7))] }))
+  const porMunicipioPrograma = useMemo(() => {
+    const m = new Map<string, { mf: number; uc: number }>()
+    baseMunicipios.forEach((x) => {
+      const e = m.get(x.municipio) ?? { mf: 0, uc: 0 }
+      if (x.programa === 'mf') e.mf += x.valor
+      else e.uc += x.valor
+      m.set(x.municipio, e)
+    })
+    return [...m.entries()].map(([nombre, v]) => ({ nombre, ...v })).sort((a, b) => b.mf + b.uc - (a.mf + a.uc) || alfa(a.nombre, b.nombre))
+  }, [baseMunicipios])
+  const opcionMunicipios = useMemo(
+    () =>
+      apiladasH({
+        filas: porMunicipioPrograma.map((p) => ({
+          nombre: p.nombre,
+          partes: [
+            { nombre: PROGRAMAS.mf.nombre, valor: p.mf, color: colorPrograma('mf') },
+            { nombre: PROGRAMAS.uc.nombre, valor: p.uc, color: colorPrograma('uc') },
+          ],
+        })),
+        fmt: cop,
+        mostrarTotal: true,
+      }),
+    [porMunicipioPrograma],
+  )
 
   // Programa → proyecto/proceso
   const arbol = useMemo<Nodo[]>(() => {
@@ -132,8 +154,10 @@ export function Resumen() {
           <Grafico etiqueta="Distribución del recurso por programa y proyecto" alto={angosto ? 380 : 600} opcion={opcionSol} />
         </Seccion>
 
-        <Seccion titulo="Los municipios que más recibieron" nota="Toca uno para filtrar. La barra muestra su parte de la inversión." tabla={{ archivo: 'inversion-por-municipio', columnas: [{ clave: 'nombre', titulo: 'Municipio' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' }], filas: porMunicipio.map((p) => ({ nombre: p.nombre, valor: p.valor })) }}>
-          <RankingBarras items={rankingMuni} fmtValor={cop} colorBase={placa.main} seleccion={f.municipios} onClic={alMunicipio} limite={12} />
+        <Seccion titulo="Distribución por municipio" nota="Modelos Educativos Flexibles frente a Universidad en el Campo, en cada municipio. Toca uno para filtrar; el valor es la inversión total.">
+          <div className="rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6">
+            <Grafico etiqueta="Distribución de la inversión por municipio, dividida entre Modelos Educativos Flexibles y Universidad en el Campo" alto={altoBarras(porMunicipioPrograma.length)} alClic={alMunicipio} opcion={opcionMunicipios} />
+          </div>
         </Seccion>
 
         <Seccion

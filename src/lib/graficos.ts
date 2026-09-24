@@ -206,33 +206,41 @@ export function columnas(o: { categorias: string[]; series: SerieCol[]; fmt: (n:
 }
 
 /** Barras horizontales apiladas: reparto de cada fila entre varias partes (p. ej. aportante por proceso). */
-export function apiladasH(o: { filas: { nombre: string; partes: { nombre: string; valor: number; color: string }[] }[]; fmt: (n: number) => string; ancho?: number }): EChartsCoreOption {
+export function apiladasH(o: { filas: { nombre: string; partes: { nombre: string; valor: number; color: string }[] }[]; fmt: (n: number) => string; ancho?: number; derecha?: number; mostrarTotal?: boolean }): EChartsCoreOption {
   const c = comun()
   const nombres = [...new Set(o.filas.flatMap((f) => f.partes.map((p) => p.nombre)))]
   const filas = [...o.filas].reverse()
+  const total = (f: { partes: { valor: number }[] }) => f.partes.reduce((s, p) => s + p.valor, 0)
   return {
     ...c,
-    grid: { left: 4, right: 12, top: 34, bottom: 4, containLabel: true },
+    grid: { left: 4, right: o.mostrarTotal ? (o.derecha ?? 116) : 12, top: 34, bottom: 4, containLabel: true },
     legend: { top: 0, left: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 12, itemGap: 18, textStyle: { color: TINTA.texto, fontSize: 13, fontWeight: 600 } },
     tooltip: {
       ...c.tooltip,
       trigger: 'axis',
       axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(29,26,74,0.05)' } },
-      formatter: (p: { name: string; marker: string; seriesName: string; value: number }[]) => `<b>${esc(p[0].name)}</b><br/>${p.map((x) => `${x.marker} ${esc(x.seriesName)}: <b>${o.fmt(x.value)}</b>`).join('<br/>')}`,
+      formatter: (p: { name: string; marker: string; seriesName: string; value: number }[]) => `<b>${esc(p[0].name)}</b><br/>${p.map((x) => `${x.marker} ${esc(x.seriesName)}: <b>${o.fmt(x.value)}</b>`).join('<br/>')}${p.length > 1 ? `<br/>Total: <b>${o.fmt(p.reduce((s, x) => s + x.value, 0))}</b>` : ''}`,
     },
     xAxis: { type: 'value', axisLabel: { color: TINTA.suave, fontFamily: MONO, fontSize: 11, formatter: o.fmt }, splitLine: { lineStyle: { color: TINTA.linea } }, axisLine: { show: false } },
     yAxis: { type: 'category', data: filas.map((f) => f.nombre), axisLabel: { color: TINTA.texto, fontWeight: 600, fontSize: 13, width: o.ancho ?? 190, overflow: 'truncate' }, axisLine: { show: false }, axisTick: { show: false } },
-    series: nombres.map((n, i) => ({
-      type: 'bar',
-      name: n,
-      stack: 'p',
-      barWidth: 22,
-      itemStyle: { color: o.filas.flatMap((f) => f.partes).find((p) => p.nombre === n)?.color ?? TINTA.vacio },
-      data: filas.map((f) => {
-        const parte = f.partes.find((p) => p.nombre === n)
-        return { value: parte?.valor ?? 0, itemStyle: { color: parte?.color ?? TINTA.vacio, borderColor: '#ffffff', borderWidth: 2, borderRadius: i === nombres.length - 1 ? [0, 8, 8, 0] : 0 } }
-      }),
-    })),
+    series: nombres.map((n, i) => {
+      const esUltima = i === nombres.length - 1
+      return {
+        type: 'bar',
+        name: n,
+        stack: 'p',
+        barWidth: 22,
+        itemStyle: { color: o.filas.flatMap((f) => f.partes).find((p) => p.nombre === n)?.color ?? TINTA.vacio },
+        label:
+          esUltima && o.mostrarTotal
+            ? { show: true, position: 'right', color: TINTA.texto, fontSize: 12, fontFamily: MONO, fontWeight: 600, formatter: (p: { dataIndex: number }) => o.fmt(total(filas[p.dataIndex])) }
+            : undefined,
+        data: filas.map((f) => {
+          const parte = f.partes.find((p) => p.nombre === n)
+          return { value: parte?.valor ?? 0, itemStyle: { color: parte?.color ?? TINTA.vacio, borderColor: '#ffffff', borderWidth: 2, borderRadius: esUltima ? [0, 8, 8, 0] : 0 } }
+        }),
+      }
+    }),
   }
 }
 

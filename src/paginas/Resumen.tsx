@@ -156,7 +156,7 @@ export function Resumen() {
 
   return (
     <>
-      <PlacaCabecera placa={placa} titulo="Resumen de la inversión" texto="Inversión en educación rural de Caldas, entre Modelos Educativos Flexibles y Universidad en el Campo: cuánto, quién lo aportó y a qué municipios llegó. Toca el mapa para filtrar todo lo demás.">
+      <PlacaCabecera placa={placa} titulo="Resumen de la inversión" texto="Inversión en educación rural de Caldas, entre Modelos Educativos Flexibles y Universidad en el Campo.">
         <BotonExcel archivo="resumen-educacion-rural-caldas" hojas={hojasExcel} />
       </PlacaCabecera>
 

@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react'
 import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
+import { Segmentado } from '../components/controles'
 import { Grafico } from '../components/Grafico'
 import { Icono } from '../components/Icono'
 import { BotonExcel, Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAnios } from '../components/Lamina'
 import { RankingBarras } from '../components/Ranking'
 import { alfa, sumar, unicos } from '../lib/agregar'
-import { PLACAS } from '../lib/colores'
+import { PLACAS, tinte } from '../lib/colores'
 import { alternar, fraseAnios, fraseFiltros, fraseValores } from '../lib/filtros'
 import { num } from '../lib/formato'
-import { columnas } from '../lib/graficos'
+import { altoBarras, apiladasH, columnas } from '../lib/graficos'
 import { pasa, useTablero } from '../lib/usarFiltrado'
 
 const placa = PLACAS.cobertura
@@ -97,6 +98,24 @@ export function Cobertura() {
   const porAnio = anios.map((a) => sumar(filasTodosAnios.filter((b) => b.anio === a), (b) => b.beneficiados))
   const opcionAnios = useMemo(() => columnas({ categorias: anios.map(String), series: [{ nombre: 'Beneficiados', color: placa.main, datos: porAnio }], fmt: num, seleccion: f.anios.map(String) }), [anios, porAnio, f.anios]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Municipios, divididos por año (ignora el filtro de municipio y el de año, igual que porMuni).
+  const [vistaMuni, setVistaMuni] = useState<'total' | 'anio'>('total')
+  const filasTodosMuniAnio = useMemo(() => datos.beneficiados.filter((b) => conInst(b.institucion)), [datos, institucionSel]) // eslint-disable-line react-hooks/exhaustive-deps
+  const coloresAnio = useMemo(() => anios.map((_, i) => tinte(placa.escala, anios.length > 1 ? 0.15 + (i / (anios.length - 1)) * 0.75 : 0.5)), [anios]) // eslint-disable-line react-hooks/exhaustive-deps
+  const porMunicipioAnio = useMemo(() => {
+    const m = new Map<string, Map<number, number>>()
+    filasTodosMuniAnio.forEach((b) => {
+      const e = m.get(b.municipio) ?? new Map<number, number>()
+      e.set(b.anio, (e.get(b.anio) ?? 0) + b.beneficiados)
+      m.set(b.municipio, e)
+    })
+    const total = (porAnio: number[]) => porAnio.reduce((s, v) => s + v, 0)
+    return [...m.entries()]
+      .map(([nombre, e]) => ({ nombre, partes: anios.map((a, i) => ({ nombre: String(a), valor: e.get(a) ?? 0, color: coloresAnio[i] })) }))
+      .sort((a, b) => total(b.partes.map((p) => p.valor)) - total(a.partes.map((p) => p.valor)) || alfa(a.nombre, b.nombre))
+  }, [filasTodosMuniAnio, anios, coloresAnio])
+  const opcionMunicipiosAnio = useMemo(() => apiladasH({ filas: porMunicipioAnio, fmt: num, agrupadas: true, mostrarValores: true }), [porMunicipioAnio])
+
   const municipiosDisp = useMemo(() => [...new Set(datos.beneficiados.map((b) => b.municipio))].sort(alfa), [datos])
   const institucionesDisp = useMemo(() => [...new Set(datos.beneficiados.map((b) => b.institucion))].sort(alfa), [datos])
   const grupos: GrupoFiltro[] = [
@@ -152,9 +171,13 @@ export function Cobertura() {
           </div>
         </Seccion>
 
-        <Seccion titulo="Municipios" nota="Beneficiados y sedes atendidas. Toca uno para filtrar." tabla={tablaMunicipioT}>
+        <Seccion titulo="Municipios" nota="Beneficiados y sedes atendidas. Toca uno para filtrar." acciones={<Segmentado etiqueta="Dividir por" valor={vistaMuni} onChange={setVistaMuni} opciones={[{ id: 'total', texto: 'Total' }, { id: 'anio', texto: 'Por año' }]} />} tabla={tablaMunicipioT}>
           <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
-            <RankingBarras items={porMuni} fmtValor={num} fmtCantidad={(n) => `${num(n)} sedes`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
+            {vistaMuni === 'total' ? (
+              <RankingBarras items={porMuni} fmtValor={num} fmtCantidad={(n) => `${num(n)} sedes`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
+            ) : (
+              <Grafico etiqueta="Beneficiados por municipio, divididos por año" alto={altoBarras(porMunicipioAnio.length, 1.7)} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} opcion={opcionMunicipiosAnio} sinRecuadro />
+            )}
           </div>
         </Seccion>
 

@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
 import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
+import { Segmentado } from '../components/controles'
 import { Grafico } from '../components/Grafico'
 import { BotonExcel, Cifra, MapaCaldas, Marca, PlacaCabecera, Seccion, TablaAniosDual } from '../components/Lamina'
 import { RankingBarras } from '../components/Ranking'
 import { agrupar, agruparDoble, alfa, sumar, unicos } from '../lib/agregar'
-import { PLACAS, colorAportante, colorEstadoActividad } from '../lib/colores'
+import { PLACAS, colorAportante, colorEstadoActividad, tinte } from '../lib/colores'
 import { alternar, fraseAnios, fraseFiltros, fraseValores } from '../lib/filtros'
 import { cant, cop, num } from '../lib/formato'
-import { columnas, pastel } from '../lib/graficos'
+import { altoBarras, apiladasH, columnas, pastel } from '../lib/graficos'
 import { PROGRAMAS, type FilaBase, type Programa as Prog } from '../lib/tipos'
 import { pasa, useTablero } from '../lib/usarFiltrado'
 
@@ -87,6 +88,25 @@ export function Programa({ programa }: { programa: Prog }) {
   )
   const filasAnio = anios.map((a) => ({ anio: a, valor: sumar(vistas.anio.filter((x) => x.anio === a), (x) => x.valor), cantidad: sumar(vistas.anio.filter((x) => x.anio === a), (x) => x.cantidad) }))
 
+  // Municipios, divididos por año (mismo criterio que porMuni: ignora el filtro de municipio, y aquí también el de año).
+  const coloresAnio = useMemo(() => anios.map((_, i) => tinte(placa.escala, anios.length > 1 ? 0.15 + (i / (anios.length - 1)) * 0.75 : 0.5)), [anios, placa.escala]) // eslint-disable-line react-hooks/exhaustive-deps
+  const [vistaMuni, setVistaMuni] = useState<'total' | 'anio'>('total')
+  const porMunicipioAnio = useMemo(() => {
+    const base = filas.filter((x) => (sel.institucion.length === 0 || sel.institucion.includes(etiquetaInst(x))) && (sel.grupo.length === 0 || sel.grupo.includes(x.grupo)) && (sel.estado.length === 0 || sel.estado.includes(etiquetaEstado(x.estado))) && (sel.aportante.length === 0 || sel.aportante.includes(x.aportante)) && (sel.actividad.length === 0 || sel.actividad.includes(x.actividad)))
+    const m = new Map<string, Map<number, number>>()
+    base.forEach((x) => {
+      const e = m.get(x.municipio) ?? new Map<number, number>()
+      e.set(x.anio, (e.get(x.anio) ?? 0) + x.valor)
+      m.set(x.municipio, e)
+    })
+    const total = (porAnio: number[]) => porAnio.reduce((s, v) => s + v, 0)
+    return [...m.entries()]
+      .map(([nombre, e]) => ({ nombre, partes: anios.map((a, i) => ({ nombre: String(a), valor: e.get(a) ?? 0, color: coloresAnio[i] })) }))
+      .sort((a, b) => total(b.partes.map((p) => p.valor)) - total(a.partes.map((p) => p.valor)) || alfa(a.nombre, b.nombre))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filas, sel, anios, coloresAnio])
+  const opcionMunicipiosAnio = useMemo(() => apiladasH({ filas: porMunicipioAnio, fmt: cop, agrupadas: true, mostrarValores: true }), [porMunicipioAnio])
+
   // Filtros de la barra lateral
   const u = (c: (x: FilaBase) => string) => [...unicos(filas, c)]
   const set = (d: Local) => (l: string[]) => setSel((s) => ({ ...s, [d]: l }))
@@ -153,9 +173,13 @@ export function Programa({ programa }: { programa: Prog }) {
           </div>
         </div>
 
-        <Seccion titulo="Municipios" tabla={tablaMunicipioT}>
+        <Seccion titulo="Municipios" acciones={<Segmentado etiqueta="Dividir por" valor={vistaMuni} onChange={setVistaMuni} opciones={[{ id: 'total', texto: 'Total' }, { id: 'anio', texto: 'Por año' }]} />} tabla={tablaMunicipioT}>
           <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
-            <RankingBarras items={porMuni} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
+            {vistaMuni === 'total' ? (
+              <RankingBarras items={porMuni} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
+            ) : (
+              <Grafico etiqueta="Valor por municipio, dividido por año" alto={altoBarras(porMunicipioAnio.length, 1.7)} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} opcion={opcionMunicipiosAnio} sinRecuadro />
+            )}
           </div>
         </Seccion>
 

@@ -6,10 +6,23 @@ import { AriaComponent, GraphicComponent, GridComponent, LegendComponent, Toolti
 import { LabelLayout } from 'echarts/features'
 import { CanvasRenderer } from 'echarts/renderers'
 import caldas from '../data/caldas.json'
+import { Icono } from './Icono'
 
 echarts.use([BarChart, MapChart, PieChart, SunburstChart, AriaComponent, GraphicComponent, GridComponent, LegendComponent, TooltipComponent, LabelLayout, CanvasRenderer])
 // Contornos de los 27 municipios de Caldas (DANE, vía geoBoundaries CC BY 4.0): ver scripts/mapa_caldas.py
 echarts.registerMap('caldas', caldas as unknown as Parameters<typeof echarts.registerMap>[1])
+
+/** Nombre de archivo a partir del texto accesible del gráfico. */
+function archivoDe(etiqueta: string): string {
+  const s = etiqueta
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 70)
+  return (s || 'grafico') + '.png'
+}
 
 interface Props {
   opcion: EChartsCoreOption
@@ -50,7 +63,23 @@ export function Grafico({ opcion, alto, etiqueta, alClic, sinRecuadro }: Props) 
     chart.current?.setOption(opcion, true)
   }, [opcion])
 
-  const grafico = <div ref={ref} role="img" aria-label={etiqueta} style={{ height: alto, cursor: alClic ? 'pointer' : 'default' }} className="w-full" />
+  const descargar = () => {
+    const url = chart.current?.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#ffffff' })
+    if (!url) return
+    const a = document.createElement('a')
+    a.href = url
+    a.download = archivoDe(etiqueta)
+    a.click()
+  }
+
+  const grafico = (
+    <div className="relative">
+      <div ref={ref} role="img" aria-label={etiqueta} style={{ height: alto, cursor: alClic ? 'pointer' : 'default' }} className="w-full" />
+      <button type="button" onClick={descargar} aria-label={`Descargar «${etiqueta}» como imagen`} title="Descargar como imagen" className="absolute right-2 top-2 rounded-full bg-white/90 p-1.5 text-ink2 shadow ring-1 ring-line transition-colors hover:bg-white hover:text-accentink">
+        <Icono n="descargar" size={14} />
+      </button>
+    </div>
+  )
   if (sinRecuadro) return grafico
   return <div className="w-full rounded-3xl bg-white p-4 ring-1 ring-line sm:p-5">{grafico}</div>
 }

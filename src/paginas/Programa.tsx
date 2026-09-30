@@ -133,7 +133,12 @@ export function Programa({ programa }: { programa: Prog }) {
 
   const tablaGrupoT = tablaDoble(cfg.grupo, dobles.grupo, `${programa}-${cfg.grupo.toLowerCase()}`)
   const tablaActividadT = tablaDoble('Actividad', dobles.actividad, `${programa}-actividades`)
-  const tablaMunicipioT = tablaDoble('Municipio', porMuni, `${programa}-municipios`)
+  const tablaMunicipioAnioT = {
+    archivo: `${programa}-municipios-por-anio`,
+    columnas: [{ clave: 'nombre', titulo: 'Municipio' }, ...anios.map((a) => ({ clave: String(a), titulo: String(a), tipo: 'moneda' as const })), { clave: 'total', titulo: 'Total', tipo: 'moneda' as const }],
+    filas: porMunicipioAnio.map((m) => ({ nombre: m.nombre, total: sumar(m.partes, (p) => p.valor), ...Object.fromEntries(m.partes.map((p) => [p.nombre, p.valor])) })),
+  }
+  const tablaMunicipioT = vistaMuni === 'anio' ? tablaMunicipioAnioT : tablaDoble('Municipio', porMuni, `${programa}-municipios`)
   const tablaInstitucionT = tablaDoble('Institución', dobles.institucion, `${programa}-instituciones`)
   const tablaEstadoT = tablaDoble('Estado', dobles.estado, `${programa}-estados`)
   const tablaAportanteT = tablaDoble('Aportante', pAportante.map((p) => ({ ...p, cantidad: sumar(t.filter((x) => x.aportante === p.nombre), (x) => x.cantidad) })), `${programa}-aportantes`)

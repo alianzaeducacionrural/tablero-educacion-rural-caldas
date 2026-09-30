@@ -132,7 +132,12 @@ export function Cobertura() {
   const contextoFiltros = fraseFiltros(fraseAnios(f.anios, anios), fraseValores(f.municipios, 'municipios'), fraseValores(institucionSel, 'instituciones'))
 
   const tablaAnioT = { archivo: 'beneficiados-por-anio', columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'n', titulo: 'Beneficiados', tipo: 'numero' as const }], filas: anios.map((a, i) => ({ anio: String(a), n: porAnio[i] })) }
-  const tablaMunicipioT = tablaPares('Municipio', porMuni, 'beneficiados-por-municipio')
+  const tablaMunicipioAnioT = {
+    archivo: 'beneficiados-por-municipio-y-anio',
+    columnas: [{ clave: 'nombre', titulo: 'Municipio' }, ...anios.map((a) => ({ clave: String(a), titulo: String(a), tipo: 'numero' as const })), { clave: 'total', titulo: 'Total', tipo: 'numero' as const }],
+    filas: porMunicipioAnio.map((m) => ({ nombre: m.nombre, total: sumar(m.partes, (p) => p.valor), ...Object.fromEntries(m.partes.map((p) => [p.nombre, p.valor])) })),
+  }
+  const tablaMunicipioT = vistaMuni === 'anio' ? tablaMunicipioAnioT : tablaPares('Municipio', porMuni, 'beneficiados-por-municipio')
   const tablaInstitucionT = tablaPares('Institución', porInst, 'beneficiados-por-institucion')
   const tablaCompletaT = {
     archivo: 'beneficiados-lista-completa',

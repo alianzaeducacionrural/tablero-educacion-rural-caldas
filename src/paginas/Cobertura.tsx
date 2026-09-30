@@ -186,8 +186,8 @@ export function Cobertura() {
             <table className="w-full border-collapse text-sm">
               <thead className="sticky top-0 bg-white">
                 <tr>
-                  <th scope="col" className="border-b-2 border-main px-4 py-2.5 text-left font-bold">Lugar</th>
-                  <th scope="col" className="border-b-2 border-main px-4 py-2.5 text-right font-bold">Beneficiados</th>
+                  <th scope="col" className="border-b-2 border-main px-4 py-2.5 text-center font-bold">Lugar</th>
+                  <th scope="col" className="border-b-2 border-main px-4 py-2.5 text-center font-bold">Beneficiados</th>
                 </tr>
               </thead>
               <tbody>

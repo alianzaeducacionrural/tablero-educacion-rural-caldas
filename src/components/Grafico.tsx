@@ -73,8 +73,8 @@ export function Grafico({ opcion, alto, etiqueta, alClic, sinRecuadro }: Props) 
   }
 
   const grafico = (
-    <div className="relative">
-      <div ref={ref} role="img" aria-label={etiqueta} style={{ height: alto, cursor: alClic ? 'pointer' : 'default' }} className="w-full" />
+    <div className="relative h-full w-full" style={{ height: alto }}>
+      <div ref={ref} role="img" aria-label={etiqueta} style={{ height: alto, cursor: alClic ? 'pointer' : 'default' }} className="h-full w-full" />
       <button type="button" onClick={descargar} aria-label={`Descargar «${etiqueta}» como imagen`} title="Descargar como imagen" className="absolute right-2 top-2 rounded-full bg-white/90 p-1.5 text-ink2 shadow ring-1 ring-line transition-colors hover:bg-white hover:text-accentink">
         <Icono n="descargar" size={14} />
       </button>

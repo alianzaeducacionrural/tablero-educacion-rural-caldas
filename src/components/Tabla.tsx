@@ -47,7 +47,7 @@ export function Tabla({ columnas, filas, archivo = 'datos' }: TablaDatos) {
               {columnas.map((c) => {
                 const activa = orden?.clave === c.clave
                 return (
-                  <th key={c.clave} scope="col" aria-sort={activa ? (orden!.asc ? 'ascending' : 'descending') : 'none'} className={`border-b-2 border-main px-3 py-2.5 font-bold text-ink ${c.tipo && c.tipo !== 'texto' ? 'text-right' : 'text-left'}`}>
+                  <th key={c.clave} scope="col" aria-sort={activa ? (orden!.asc ? 'ascending' : 'descending') : 'none'} className="border-b-2 border-main px-3 py-2.5 text-center font-bold text-ink">
                     <button type="button" onClick={() => setOrden({ clave: c.clave, asc: activa ? !orden!.asc : c.tipo === 'texto' || !c.tipo })} className="inline-flex items-center gap-1 hover:text-accentink">
                       {c.titulo}
                       {activa && <Icono n={orden!.asc ? 'arriba' : 'abajo'} size={12} />}

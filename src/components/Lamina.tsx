@@ -229,11 +229,11 @@ export function TablaAnios({ filas, series, fmt, nota }: { filas: { anio: number
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
-              <th scope="col" className="border-b-2 border-main px-3 py-2.5 text-left font-bold">
+              <th scope="col" className="border-b-2 border-main px-3 py-2.5 text-center font-bold">
                 Año
               </th>
               {series.map((s) => (
-                <th key={s.nombre} scope="col" className="border-b-2 border-main px-3 py-2.5 text-right font-bold">
+                <th key={s.nombre} scope="col" className="border-b-2 border-main px-3 py-2.5 text-center font-bold">
                   <span className="inline-flex items-center gap-2">
                     <span className="size-3 rounded-full" style={{ background: s.color }} />
                     {s.nombre}
@@ -241,11 +241,11 @@ export function TablaAnios({ filas, series, fmt, nota }: { filas: { anio: number
                 </th>
               ))}
               {series.length > 1 && (
-                <th scope="col" className="border-b-2 border-main px-3 py-2.5 text-right font-bold">
+                <th scope="col" className="border-b-2 border-main px-3 py-2.5 text-center font-bold">
                   Total
                 </th>
               )}
-              <th scope="col" className="border-b-2 border-main px-3 py-2.5 text-right font-bold">
+              <th scope="col" className="border-b-2 border-main px-3 py-2.5 text-center font-bold">
                 Cambio
               </th>
             </tr>
@@ -307,11 +307,11 @@ export function TablaAniosDual({ filas, fmtValor, fmtCantidad, tituloCantidad = 
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
-              <th scope="col" className={`${th} text-left`}>Año</th>
-              <th scope="col" className={`${th} text-right`}>Valor</th>
-              <th scope="col" className={`${th} text-right`}>Cambio</th>
-              <th scope="col" className={`${th} text-right`}>{tituloCantidad}</th>
-              <th scope="col" className={`${th} text-right`}>Cambio</th>
+              <th scope="col" className={`${th} text-center`}>Año</th>
+              <th scope="col" className={`${th} text-center`}>Valor</th>
+              <th scope="col" className={`${th} text-center`}>Cambio</th>
+              <th scope="col" className={`${th} text-center`}>{tituloCantidad}</th>
+              <th scope="col" className={`${th} text-center`}>Cambio</th>
             </tr>
           </thead>
           <tbody>

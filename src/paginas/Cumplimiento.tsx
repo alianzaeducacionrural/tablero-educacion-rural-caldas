@@ -151,8 +151,8 @@ export function Cumplimiento() {
                 <table className="w-full border-collapse text-sm">
                   <thead className="bg-white">
                     <tr>
-                      {['Actividad', 'Meta', 'Ejecutado', 'Avance', 'Faltante', 'Adicional', 'Valor meta', 'Valor ejecutado'].map((h, i) => (
-                        <th key={h} scope="col" className={`border-b-2 border-main px-3 py-2.5 font-bold ${i === 0 || i === 3 ? 'text-left' : 'text-right'}`}>
+                      {['Actividad', 'Meta', 'Ejecutado', 'Avance', 'Faltante', 'Adicional', 'Valor meta', 'Valor ejecutado'].map((h) => (
+                        <th key={h} scope="col" className="border-b-2 border-main px-3 py-2.5 text-center font-bold">
                           {h}
                         </th>
                       ))}

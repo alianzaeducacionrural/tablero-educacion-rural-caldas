@@ -83,7 +83,10 @@ export function Resumen() {
   const filasMuni = vistaMuni === 'programa' ? filasMuniPrograma : filasMuniAnio
   const [verTodosMuni, setVerTodosMuni] = useState(false)
   const municipiosMostrados = verTodosMuni ? filasMuni : filasMuni.slice(0, 10)
-  const opcionMunicipios = useMemo(() => apiladasH({ filas: municipiosMostrados, fmt: cop, mostrarTotal: true }), [municipiosMostrados])
+  const opcionMunicipios = useMemo(
+    () => (vistaMuni === 'anio' ? apiladasH({ filas: municipiosMostrados, fmt: cop, agrupadas: true, mostrarValores: true }) : apiladasH({ filas: municipiosMostrados, fmt: cop, mostrarTotal: true })),
+    [municipiosMostrados, vistaMuni],
+  )
 
   // Programa → proyecto/proceso (el detalle solo se ve en la tabla y el Excel; el gráfico muestra el total por programa)
   const totalMf = sumar(base.filter((x) => x.programa === 'mf'), (x) => x.valor)
@@ -198,7 +201,7 @@ export function Resumen() {
           tabla={tablaMunicipioT}
         >
           <div className={verTodosMuni ? 'rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6' : 'max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6'}>
-            <Grafico etiqueta={vistaMuni === 'programa' ? 'Distribución de la inversión por municipio, dividida entre Modelos Educativos Flexibles y Universidad en el Campo' : 'Distribución de la inversión por municipio, dividida por año'} alto={altoBarras(municipiosMostrados.length)} alClic={alMunicipio} opcion={opcionMunicipios} sinRecuadro />
+            <Grafico etiqueta={vistaMuni === 'programa' ? 'Distribución de la inversión por municipio, dividida entre Modelos Educativos Flexibles y Universidad en el Campo' : 'Distribución de la inversión por municipio, dividida por año'} alto={altoBarras(municipiosMostrados.length, vistaMuni === 'anio' ? 1.7 : 1)} alClic={alMunicipio} opcion={opcionMunicipios} sinRecuadro />
           </div>
           {filasMuni.length > 10 && (
             <button type="button" onClick={() => setVerTodosMuni((v) => !v)} className="mt-4 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-accentink ring-1 ring-line hover:bg-wash">

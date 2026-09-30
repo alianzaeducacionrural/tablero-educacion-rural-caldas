@@ -110,8 +110,8 @@ export interface Item {
   color?: string
 }
 
-/** Alto del contenedor de barras horizontales: una fila por elemento. */
-export const altoBarras = (n: number) => Math.max(150, n * 36 + 16)
+/** Alto del contenedor de barras horizontales: una fila por elemento (o `porFila` mini-barras por elemento). */
+export const altoBarras = (n: number, porFila = 1) => Math.max(150, n * 36 * porFila + 16)
 
 interface OpcionesBarrasH {
   items: Item[]
@@ -215,39 +215,53 @@ export function columnas(o: { categorias: string[]; series: SerieCol[]; fmt: (n:
   }
 }
 
-/** Barras horizontales apiladas: reparto de cada fila entre varias partes (p. ej. aportante por proceso). */
-export function apiladasH(o: { filas: { nombre: string; partes: { nombre: string; valor: number; color: string }[] }[]; fmt: (n: number) => string; ancho?: number; derecha?: number; mostrarTotal?: boolean }): EChartsCoreOption {
+/** Barras horizontales: por defecto apiladas (reparto de cada fila entre varias partes); con `agrupadas`, una
+ * mini-barra por parte, cada una con su propio valor a la derecha siempre legible (no compite por el ancho). */
+export function apiladasH(o: { filas: { nombre: string; partes: { nombre: string; valor: number; color: string }[] }[]; fmt: (n: number) => string; ancho?: number; derecha?: number; mostrarTotal?: boolean; mostrarValores?: boolean; agrupadas?: boolean }): EChartsCoreOption {
   const c = comun()
   const nombres = [...new Set(o.filas.flatMap((f) => f.partes.map((p) => p.nombre)))]
   const filas = [...o.filas].reverse()
   const total = (f: { partes: { valor: number }[] }) => f.partes.reduce((s, p) => s + p.valor, 0)
+  // Con los valores de cada parte a la vista, el total al final ya no cabe: se ve en la leyenda y al pasar el mouse.
+  const mostrarTotal = o.mostrarTotal && !o.mostrarValores
+  const derecha = o.agrupadas && o.mostrarValores ? (o.derecha ?? 100) : mostrarTotal ? (o.derecha ?? 116) : 12
   return {
     ...c,
-    grid: { left: 4, right: o.mostrarTotal ? (o.derecha ?? 116) : 12, top: 34, bottom: 4, containLabel: true },
+    grid: { left: 4, right: derecha, top: 34, bottom: 4, containLabel: true },
     legend: { top: 0, left: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 12, itemGap: 18, textStyle: { color: TINTA.texto, fontSize: 13, fontWeight: 600 } },
     tooltip: {
       ...c.tooltip,
       trigger: 'axis',
       axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(29,26,74,0.05)' } },
-      formatter: (p: { name: string; marker: string; seriesName: string; value: number }[]) => `<b>${esc(p[0].name)}</b><br/>${p.map((x) => `${x.marker} ${esc(x.seriesName)}: <b>${o.fmt(x.value)}</b>`).join('<br/>')}${p.length > 1 ? `<br/>Total: <b>${o.fmt(p.reduce((s, x) => s + x.value, 0))}</b>` : ''}`,
+      formatter: (p: { name: string; marker: string; seriesName: string; value: number }[]) => `<b>${esc(p[0].name)}</b><br/>${p.map((x) => `${x.marker} ${esc(x.seriesName)}: <b>${o.fmt(x.value)}</b>`).join('<br/>')}${!o.agrupadas && p.length > 1 ? `<br/>Total: <b>${o.fmt(p.reduce((s, x) => s + x.value, 0))}</b>` : ''}`,
     },
     xAxis: { type: 'value', axisLabel: { color: TINTA.suave, fontFamily: MONO, fontSize: 11, formatter: o.fmt }, splitLine: { lineStyle: { color: TINTA.linea } }, axisLine: { show: false } },
     yAxis: { type: 'category', data: filas.map((f) => f.nombre), axisLabel: { color: TINTA.texto, fontWeight: 600, fontSize: 13, width: o.ancho ?? 190, overflow: 'truncate' }, axisLine: { show: false }, axisTick: { show: false } },
     series: nombres.map((n, i) => {
       const esUltima = i === nombres.length - 1
+      const color = o.filas.flatMap((f) => f.partes).find((p) => p.nombre === n)?.color ?? TINTA.vacio
+      const label = o.agrupadas
+        ? o.mostrarValores
+          ? { show: true, position: 'right' as const, color: TINTA.texto, fontFamily: MONO, fontSize: 11, fontWeight: 700, formatter: (p: { value: number }) => (p.value > 0 ? o.fmt(p.value) : '') }
+          : undefined
+        : o.mostrarValores
+          ? { show: true, position: 'inside' as const, color: textoSobre(color), fontFamily: MONO, fontSize: 11, fontWeight: 700, formatter: (p: { value: number }) => (p.value > 0 ? o.fmt(p.value) : '') }
+          : esUltima && mostrarTotal
+            ? { show: true, position: 'right' as const, color: TINTA.texto, fontSize: 12, fontFamily: MONO, fontWeight: 600, formatter: (p: { dataIndex: number }) => o.fmt(total(filas[p.dataIndex])) }
+            : undefined
       return {
         type: 'bar',
         name: n,
-        stack: 'p',
-        barWidth: 22,
-        itemStyle: { color: o.filas.flatMap((f) => f.partes).find((p) => p.nombre === n)?.color ?? TINTA.vacio },
-        label:
-          esUltima && o.mostrarTotal
-            ? { show: true, position: 'right', color: TINTA.texto, fontSize: 12, fontFamily: MONO, fontWeight: 600, formatter: (p: { dataIndex: number }) => o.fmt(total(filas[p.dataIndex])) }
-            : undefined,
+        stack: o.agrupadas ? undefined : 'p',
+        barGap: o.agrupadas ? '18%' : undefined,
+        barMaxWidth: o.agrupadas ? 16 : 22,
+        itemStyle: { color },
+        label,
+        labelLayout: o.mostrarValores ? { hideOverlap: true } : undefined,
         data: filas.map((f) => {
           const parte = f.partes.find((p) => p.nombre === n)
-          return { value: parte?.valor ?? 0, itemStyle: { color: parte?.color ?? TINTA.vacio, borderColor: '#ffffff', borderWidth: 2, borderRadius: esUltima ? [0, 8, 8, 0] : 0 } }
+          const redondeo = o.agrupadas ? ([0, 6, 6, 0] as [number, number, number, number]) : esUltima ? ([0, 8, 8, 0] as [number, number, number, number]) : 0
+          return { value: parte?.valor ?? 0, itemStyle: { color: parte?.color ?? TINTA.vacio, borderColor: '#ffffff', borderWidth: 2, borderRadius: redondeo } }
         }),
       }
     }),

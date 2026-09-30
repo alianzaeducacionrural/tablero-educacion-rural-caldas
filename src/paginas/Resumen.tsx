@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
+import { Segmentado } from '../components/controles'
 import { ConFiltros, PanelFiltros, etiquetasDe, type GrupoFiltro } from '../components/Filtros'
 import { Grafico } from '../components/Grafico'
 import { BotonExcel, Cifra, MapaCaldas, Marca, PlacaCabecera, Posiciones, Seccion, TablaAnios } from '../components/Lamina'
 import { agrupar, alfa, sumar, unicos } from '../lib/agregar'
-import { PLACAS, colorAportante, colorPrograma } from '../lib/colores'
+import { PLACAS, colorAportante, colorPrograma, tinte } from '../lib/colores'
 import { alternar, fraseAnios, fraseFiltros, fraseValores } from '../lib/filtros'
 import { cop, num } from '../lib/formato'
 import { altoBarras, apiladasH, columnas, dona, pastel } from '../lib/graficos'
@@ -45,23 +46,44 @@ export function Resumen() {
     })
     return [...m.entries()].map(([nombre, v]) => ({ nombre, ...v })).sort((a, b) => b.mf + b.uc - (a.mf + a.uc) || alfa(a.nombre, b.nombre))
   }, [baseMunicipios])
-  const [verTodosMuni, setVerTodosMuni] = useState(false)
-  const municipiosMostrados = verTodosMuni ? porMunicipioPrograma : porMunicipioPrograma.slice(0, 10)
-  const opcionMunicipios = useMemo(
+
+  // Para "por año": mismo criterio que "por municipio" (ignora el filtro que el propio gráfico representa), pero
+  // ignorando también el filtro de año, porque aquí el año es lo que se quiere comparar.
+  const baseMunicipiosAnio = useMemo(() => datos.base.filter((x) => conInst(x.institucion)), [datos, institucionSel]) // eslint-disable-line react-hooks/exhaustive-deps
+  const porMunicipioAnio = useMemo(() => {
+    const m = new Map<string, Map<number, number>>()
+    baseMunicipiosAnio.forEach((x) => {
+      const e = m.get(x.municipio) ?? new Map<number, number>()
+      e.set(x.anio, (e.get(x.anio) ?? 0) + x.valor)
+      m.set(x.municipio, e)
+    })
+    const total = (porAnio: number[]) => porAnio.reduce((s, v) => s + v, 0)
+    return [...m.entries()]
+      .map(([nombre, e]) => ({ nombre, porAnio: anios.map((a) => e.get(a) ?? 0) }))
+      .sort((a, b) => total(b.porAnio) - total(a.porAnio) || alfa(a.nombre, b.nombre))
+  }, [baseMunicipiosAnio, anios])
+  const coloresAnio = useMemo(() => anios.map((_, i) => tinte(placa.escala, anios.length > 1 ? 0.15 + (i / (anios.length - 1)) * 0.75 : 0.5)), [anios])
+
+  const [vistaMuni, setVistaMuni] = useState<'programa' | 'anio'>('programa')
+  const filasMuniPrograma = useMemo(
     () =>
-      apiladasH({
-        filas: municipiosMostrados.map((p) => ({
-          nombre: p.nombre,
-          partes: [
-            { nombre: PROGRAMAS.mf.nombre, valor: p.mf, color: colorPrograma('mf') },
-            { nombre: PROGRAMAS.uc.nombre, valor: p.uc, color: colorPrograma('uc') },
-          ],
-        })),
-        fmt: cop,
-        mostrarTotal: true,
-      }),
-    [municipiosMostrados],
+      porMunicipioPrograma.map((p) => ({
+        nombre: p.nombre,
+        partes: [
+          { nombre: PROGRAMAS.mf.nombre, valor: p.mf, color: colorPrograma('mf') },
+          { nombre: PROGRAMAS.uc.nombre, valor: p.uc, color: colorPrograma('uc') },
+        ],
+      })),
+    [porMunicipioPrograma],
   )
+  const filasMuniAnio = useMemo(
+    () => porMunicipioAnio.map((p) => ({ nombre: p.nombre, partes: anios.map((a, i) => ({ nombre: String(a), valor: p.porAnio[i], color: coloresAnio[i] })) })),
+    [porMunicipioAnio, anios, coloresAnio],
+  )
+  const filasMuni = vistaMuni === 'programa' ? filasMuniPrograma : filasMuniAnio
+  const [verTodosMuni, setVerTodosMuni] = useState(false)
+  const municipiosMostrados = verTodosMuni ? filasMuni : filasMuni.slice(0, 10)
+  const opcionMunicipios = useMemo(() => apiladasH({ filas: municipiosMostrados, fmt: cop, mostrarTotal: true }), [municipiosMostrados])
 
   // Programa → proyecto/proceso (el detalle solo se ve en la tabla y el Excel; el gráfico muestra el total por programa)
   const totalMf = sumar(base.filter((x) => x.programa === 'mf'), (x) => x.valor)
@@ -122,7 +144,14 @@ export function Resumen() {
   const contextoFiltros = fraseFiltros(fraseAnios(f.anios, anios), fraseValores(f.municipios, 'municipios'), fraseValores(institucionSel, 'instituciones'))
 
   const tablaFlujoT = { archivo: 'distribucion-del-recurso', columnas: [{ clave: 'programa', titulo: 'Programa' }, { clave: 'grupo', titulo: 'Proyecto / proceso' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const }], filas: tablaFlujo }
-  const tablaMunicipioT = { archivo: 'inversion-por-municipio', columnas: [{ clave: 'nombre', titulo: 'Municipio' }, { clave: 'mf', titulo: 'Modelos Educativos Flexibles', tipo: 'moneda' as const }, { clave: 'uc', titulo: 'Universidad en el Campo', tipo: 'moneda' as const }, { clave: 'total', titulo: 'Total', tipo: 'moneda' as const }], filas: porMunicipioPrograma.map((p) => ({ nombre: p.nombre, mf: p.mf, uc: p.uc, total: p.mf + p.uc })) }
+  const tablaMunicipioT =
+    vistaMuni === 'programa'
+      ? { archivo: 'inversion-por-municipio', columnas: [{ clave: 'nombre', titulo: 'Municipio' }, { clave: 'mf', titulo: 'Modelos Educativos Flexibles', tipo: 'moneda' as const }, { clave: 'uc', titulo: 'Universidad en el Campo', tipo: 'moneda' as const }, { clave: 'total', titulo: 'Total', tipo: 'moneda' as const }], filas: porMunicipioPrograma.map((p) => ({ nombre: p.nombre, mf: p.mf, uc: p.uc, total: p.mf + p.uc })) }
+      : {
+          archivo: 'inversion-por-municipio-y-anio',
+          columnas: [{ clave: 'nombre', titulo: 'Municipio' }, ...anios.map((a) => ({ clave: String(a), titulo: String(a), tipo: 'moneda' as const })), { clave: 'total', titulo: 'Total', tipo: 'moneda' as const }],
+          filas: porMunicipioAnio.map((p) => ({ nombre: p.nombre, total: p.porAnio.reduce((s, v) => s + v, 0), ...Object.fromEntries(anios.map((a, i) => [String(a), p.porAnio[i]])) })),
+        }
   const tablaAnioT = { archivo: 'inversion-por-anio', columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'mf', titulo: 'Modelos Educativos Flexibles', tipo: 'moneda' as const }, { clave: 'uc', titulo: 'Universidad en el Campo', tipo: 'moneda' as const }], filas: porAnio.map((a) => ({ anio: String(a.anio), mf: a.mf, uc: a.uc })) }
   const tablaResumenT = {
     archivo: 'resumen',
@@ -162,13 +191,18 @@ export function Resumen() {
           </div>
         </div>
 
-        <Seccion titulo="Distribución por municipio" nota="Modelos Educativos Flexibles frente a Universidad en el Campo, en cada municipio. Toca uno para filtrar; el valor es la inversión total.">
+        <Seccion
+          titulo="Distribución por municipio"
+          nota={vistaMuni === 'programa' ? 'Modelos Educativos Flexibles frente a Universidad en el Campo, en cada municipio. Toca uno para filtrar; el valor es la inversión total.' : 'Cómo cambió la inversión de un año a otro, en cada municipio. Toca uno para filtrar; el valor es la inversión total.'}
+          acciones={<Segmentado etiqueta="Dividir por" valor={vistaMuni} onChange={setVistaMuni} opciones={[{ id: 'programa', texto: 'Por programa' }, { id: 'anio', texto: 'Por año' }]} />}
+          tabla={tablaMunicipioT}
+        >
           <div className={verTodosMuni ? 'rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6' : 'max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6'}>
-            <Grafico etiqueta="Distribución de la inversión por municipio, dividida entre Modelos Educativos Flexibles y Universidad en el Campo" alto={altoBarras(municipiosMostrados.length)} alClic={alMunicipio} opcion={opcionMunicipios} sinRecuadro />
+            <Grafico etiqueta={vistaMuni === 'programa' ? 'Distribución de la inversión por municipio, dividida entre Modelos Educativos Flexibles y Universidad en el Campo' : 'Distribución de la inversión por municipio, dividida por año'} alto={altoBarras(municipiosMostrados.length)} alClic={alMunicipio} opcion={opcionMunicipios} sinRecuadro />
           </div>
-          {porMunicipioPrograma.length > 10 && (
+          {filasMuni.length > 10 && (
             <button type="button" onClick={() => setVerTodosMuni((v) => !v)} className="mt-4 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-accentink ring-1 ring-line hover:bg-wash">
-              {verTodosMuni ? 'Ver los 10 principales' : `Ver los ${porMunicipioPrograma.length} municipios`}
+              {verTodosMuni ? 'Ver los 10 principales' : `Ver los ${filasMuni.length} municipios`}
             </button>
           )}
         </Seccion>

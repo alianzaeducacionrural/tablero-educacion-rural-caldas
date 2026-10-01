@@ -153,7 +153,10 @@ export function Cobertura() {
       { clave: 'sede', titulo: 'Sede' },
       { clave: 'beneficiados', titulo: 'Beneficiados', tipo: 'numero' as const },
     ],
-    filas: filas.map((b) => ({ anio: b.anio, municipio: b.municipio, institucion: b.institucion, sede: b.sede, beneficiados: b.beneficiados })),
+    // Agrupada por institución: todas las filas de una misma IE quedan juntas, de corrido.
+    filas: [...filas]
+      .sort((a, b) => alfa(a.municipio, b.municipio) || alfa(a.institucion, b.institucion) || a.anio - b.anio)
+      .map((b) => ({ anio: b.anio, municipio: b.municipio, institucion: b.institucion, sede: b.sede, beneficiados: b.beneficiados })),
   }
   const hojasExcel = [
     { nombre: 'Base de datos', tabla: tablaBaseT },

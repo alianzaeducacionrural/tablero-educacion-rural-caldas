@@ -184,7 +184,10 @@ export function Resumen() {
       { clave: 'cantidad', titulo: 'Cantidad', tipo: 'cantidad' as const },
       { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const },
     ],
-    filas: base.map((x) => ({ programa: PROGRAMAS[x.programa].nombre, anio: x.anio, municipio: x.municipio, institucion: x.institucion, grupo: x.grupo, actividad: x.actividad, estado: x.estado, aportante: x.aportante, asistio: x.asistio ? 'Sí' : 'No', cantidad: x.cantidad, valor: x.valor })),
+    // Agrupada por institución: todas las filas de una misma IE quedan juntas, de corrido.
+    filas: [...base]
+      .sort((a, b) => alfa(a.municipio, b.municipio) || alfa(a.institucion, b.institucion) || a.anio - b.anio)
+      .map((x) => ({ programa: PROGRAMAS[x.programa].nombre, anio: x.anio, municipio: x.municipio, institucion: x.institucion, grupo: x.grupo, actividad: x.actividad, estado: x.estado, aportante: x.aportante, asistio: x.asistio ? 'Sí' : 'No', cantidad: x.cantidad, valor: x.valor })),
   }
   const hojasExcel = [
     { nombre: 'Base de datos', tabla: tablaBaseT },

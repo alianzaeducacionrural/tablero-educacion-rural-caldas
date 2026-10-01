@@ -131,23 +131,26 @@ export function Estudiantes() {
       { clave: 'acudiente', titulo: 'Acudiente' },
       { clave: 'telAcudiente', titulo: 'Tel. Acudiente' },
     ],
-    filas: t.map((e) => ({
-      nombre: e.nombre,
-      documento: e.documento,
-      municipio: e.municipio,
-      institucion: e.institucion,
-      universidad: e.universidad,
-      programa: abrevPrograma(e.programa),
-      anioIngreso: e.anioIngreso,
-      estado: e.estado,
-      genero: e.genero,
-      financiador: e.financiador,
-      anioGraduacion: e.anioGraduacion ?? '',
-      telefono: e.telefono,
-      correo: e.correo,
-      acudiente: e.acudiente,
-      telAcudiente: e.telAcudiente,
-    })),
+    // Agrupada por institución: todos los estudiantes de una misma IE quedan juntos, de corrido.
+    filas: [...t]
+      .sort((a, b) => alfa(a.municipio, b.municipio) || alfa(a.institucion, b.institucion) || alfa(a.nombre, b.nombre))
+      .map((e) => ({
+        nombre: e.nombre,
+        documento: e.documento,
+        municipio: e.municipio,
+        institucion: e.institucion,
+        universidad: e.universidad,
+        programa: abrevPrograma(e.programa),
+        anioIngreso: e.anioIngreso,
+        estado: e.estado,
+        genero: e.genero,
+        financiador: e.financiador,
+        anioGraduacion: e.anioGraduacion ?? '',
+        telefono: e.telefono,
+        correo: e.correo,
+        acudiente: e.acudiente,
+        telAcudiente: e.telAcudiente,
+      })),
   }
   const tablaResumenT = {
     archivo: 'resumen',

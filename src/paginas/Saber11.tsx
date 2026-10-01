@@ -286,8 +286,51 @@ export function Saber11() {
     filas: porInstitucionAnio.map((m) => ({ nombre: m.nombre, ...Object.fromEntries(m.partes.map((p) => [p.nombre, p.valor])) })),
   }
   const tablaInstitucionT = vistaInst === 'anio' ? tablaInstitucionAnioT : tablaInstitucionTotalT
-  const tablaBaseT = {
+
+  // Base de datos consolidada: una fila por institución, con los 3 años en columnas (toda su historia junta).
+  const CAMPOS_CONSOLIDADO = [
+    { clave: 'puntajeGlobal', nombre: 'Puntaje global' },
+    { clave: 'lecturaCritica', nombre: 'Lectura crítica' },
+    { clave: 'matematicas', nombre: 'Matemáticas' },
+    { clave: 'socialesCiudadanas', nombre: 'Sociales y ciudadanas' },
+    { clave: 'cienciasNaturales', nombre: 'Ciencias naturales' },
+    { clave: 'ingles', nombre: 'Inglés' },
+  ] as const
+  const porInstConsolidado = useMemo(() => {
+    const m = new Map<string, { municipio: string; institucion: string; porAnio: Map<number, FilaSaber11> }>()
+    filas.forEach((s) => {
+      const clave = etiquetaInst(s)
+      const e = m.get(clave) ?? { municipio: s.municipio, institucion: clave, porAnio: new Map<number, FilaSaber11>() }
+      e.porAnio.set(s.anio, s)
+      m.set(clave, e)
+    })
+    return [...m.values()].sort((a, b) => alfa(a.municipio, b.municipio) || alfa(a.institucion, b.institucion))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filas])
+  const tablaBaseConsolidadaT = {
     archivo: 'saber11-base-de-datos',
+    columnas: [
+      { clave: 'municipio', titulo: 'Municipio' },
+      { clave: 'institucion', titulo: 'Institución' },
+      ...anios.flatMap((a) => [
+        ...CAMPOS_CONSOLIDADO.map((c) => ({ clave: `${c.clave}_${a}`, titulo: `${a} ${c.nombre}`, tipo: 'numero' as const })),
+        { clave: `clasificacion_${a}`, titulo: `${a} Clasificación` },
+      ]),
+    ],
+    filas: porInstConsolidado.map((p) => {
+      const fila: Record<string, string | number> = { municipio: p.municipio, institucion: p.institucion }
+      anios.forEach((a) => {
+        const s = p.porAnio.get(a)
+        CAMPOS_CONSOLIDADO.forEach((c) => {
+          fila[`${c.clave}_${a}`] = (s?.[c.clave] ?? '') as string | number
+        })
+        fila[`clasificacion_${a}`] = s?.clasificacion || ''
+      })
+      return fila
+    }),
+  }
+  const tablaBaseDetalleT = {
+    archivo: 'saber11-base-de-datos-por-anio',
     columnas: [
       { clave: 'municipio', titulo: 'Municipio' },
       { clave: 'institucion', titulo: 'Institución' },
@@ -310,7 +353,8 @@ export function Saber11() {
       })),
   }
   const hojasExcel = [
-    { nombre: 'Base de datos', tabla: tablaBaseT },
+    { nombre: 'Base de datos', tabla: tablaBaseConsolidadaT },
+    { nombre: 'Base de datos por año', tabla: tablaBaseDetalleT },
     { nombre: 'Año tras año', tabla: tablaAnioT },
     { nombre: 'Municipio', tabla: tablaMunicipioT },
     { nombre: 'Institución', tabla: tablaInstitucionT },

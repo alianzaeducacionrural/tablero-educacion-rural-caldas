@@ -157,7 +157,10 @@ export function Programa({ programa }: { programa: Prog }) {
       { clave: 'cantidad', titulo: 'Cantidad', tipo: 'cantidad' as const },
       { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const },
     ],
-    filas: t.map((x) => ({ anio: x.anio, municipio: x.municipio, institucion: etiquetaInst(x), grupo: x.grupo, actividad: x.actividad, estado: etiquetaEstado(x.estado), aportante: x.aportante, asistio: x.asistio ? 'Sí' : 'No', cantidad: x.cantidad, valor: x.valor })),
+    // Agrupada por institución: todas las filas de una misma IE quedan juntas, de corrido.
+    filas: [...t]
+      .sort((a, b) => alfa(a.municipio, b.municipio) || alfa(etiquetaInst(a), etiquetaInst(b)) || a.anio - b.anio)
+      .map((x) => ({ anio: x.anio, municipio: x.municipio, institucion: etiquetaInst(x), grupo: x.grupo, actividad: x.actividad, estado: etiquetaEstado(x.estado), aportante: x.aportante, asistio: x.asistio ? 'Sí' : 'No', cantidad: x.cantidad, valor: x.valor })),
   }
   const hojasExcel = [
     { nombre: 'Base de datos', tabla: tablaBaseT },

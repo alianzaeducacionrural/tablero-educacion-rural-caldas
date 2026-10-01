@@ -17,14 +17,18 @@ interface Props {
   onClic?: (nombre: string) => void
   /** Cuántas filas se muestran; el resto está en la tabla. */
   limite?: number
+  /** Para valores que nunca se acercan a 0 (p. ej. puntajes de prueba, ~150-300): escala el largo de la barra
+   * entre el mínimo y el máximo visibles, no desde 0, para que la diferencia entre filas sí se note. */
+  escalaDesdeMinimo?: boolean
 }
 
 /**
  * Ranking en barras con las dos cifras a la vista: el valor (la barra y su número completo) y la cantidad.
  * Es HTML, no un gráfico de canvas: cada fila es un botón que filtra y se lee con lector de pantalla.
  */
-export function RankingBarras({ items, fmtValor, fmtCantidad, colorBase, tituloValor = 'Valor', tituloCantidad = 'Cantidad', seleccion, onClic, limite = 12 }: Props) {
+export function RankingBarras({ items, fmtValor, fmtCantidad, colorBase, tituloValor = 'Valor', tituloCantidad = 'Cantidad', seleccion, onClic, limite = 12, escalaDesdeMinimo }: Props) {
   const max = Math.max(1, ...items.map((i) => i.valor))
+  const min = escalaDesdeMinimo && items.length ? Math.min(...items.map((i) => i.valor)) : 0
   const hay = (seleccion?.length ?? 0) > 0
   const conCantidad = fmtCantidad !== undefined && items.some((i) => i.cantidad !== undefined)
   const cols = conCantidad ? 'sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_10.5rem_6.5rem]' : 'sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_10.5rem]'
@@ -51,7 +55,7 @@ export function RankingBarras({ items, fmtValor, fmtCantidad, colorBase, tituloV
                   {it.nombre}
                 </span>
                 <span className="order-last col-span-3 h-4 overflow-hidden rounded-full bg-black/5 sm:order-none sm:col-span-1" aria-hidden="true">
-                  <span className="block h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(1.5, (it.valor / max) * 100)}%`, background: it.color ?? colorBase }} />
+                  <span className="block h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(1.5, ((it.valor - min) / (max - min || 1)) * 100)}%`, background: it.color ?? colorBase }} />
                 </span>
                 <span className="cota text-right text-sm font-semibold sm:text-[0.95rem]">{fmtValor(it.valor)}</span>
                 {conCantidad && <span className="cota text-right text-sm text-ink2 sm:text-[0.95rem]">{it.cantidad !== undefined ? fmtCantidad!(it.cantidad) : ''}</span>}

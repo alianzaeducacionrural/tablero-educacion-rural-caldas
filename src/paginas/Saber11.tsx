@@ -198,6 +198,28 @@ export function Saber11() {
     () => dona({ partes: pClasif.map((p) => ({ nombre: p.nombre, valor: p.valor, color: colorClasificacion(p.nombre) })), centro: num(pClasif.reduce((s, p) => s + p.valor, 0)), sub: 'instituciones', fmt: num, seleccion: clasificacionSel }),
     [pClasif, clasificacionSel],
   )
+  // Mezcla de clasificaciones por municipio (ignora el filtro de municipio y el de clasificación: es justo lo que muestra).
+  const filasClasifPorMuni = useMemo(() => datos.saber11.filter((s) => conInst(s) && s.anio === anioFoco), [datos, institucionSel, anioFoco]) // eslint-disable-line react-hooks/exhaustive-deps
+  const clasifPorMuni = useMemo(() => {
+    const m = new Map<string, Map<string, number>>()
+    filasClasifPorMuni.forEach((s) => {
+      if (!s.clasificacion) return
+      const e = m.get(s.municipio) ?? new Map<string, number>()
+      e.set(s.clasificacion, (e.get(s.clasificacion) ?? 0) + 1)
+      m.set(s.municipio, e)
+    })
+    const necesitaApoyo = (e: Map<string, number>) => {
+      const total = [...e.values()].reduce((s, v) => s + v, 0)
+      return total ? ((e.get('C') ?? 0) + (e.get('D') ?? 0)) / total : 0
+    }
+    return [...m.entries()]
+      .map(([nombre, e]) => {
+        const total = [...e.values()].reduce((s, v) => s + v, 0)
+        return { nombre, necesitaApoyo: necesitaApoyo(e), partes: ORDEN_CLASIF.map((c) => ({ nombre: c, valor: total ? ((e.get(c) ?? 0) / total) * 100 : 0, color: colorClasificacion(c) })) }
+      })
+      .sort((a, b) => b.necesitaApoyo - a.necesitaApoyo || alfa(a.nombre, b.nombre))
+  }, [filasClasifPorMuni])
+  const opcionClasifPorMuni = useMemo(() => apiladasH({ filas: clasifPorMuni.map(({ nombre, partes }) => ({ nombre, partes })), fmt: (n) => pct(n / 100, 0) }), [clasifPorMuni])
 
   // Detalle completo: una fila por institución (la del año activo), con buscador; el clic abre el historial completo.
   const [buscarDetalle, setBuscarDetalle] = useState('')
@@ -381,7 +403,7 @@ export function Saber11() {
         <Seccion titulo="Municipios" nota="Puntaje global promedio de cada municipio. Toca uno para filtrar." tono="lavado" acciones={<Segmentado etiqueta="Dividir por" valor={vistaMuni} onChange={setVistaMuni} opciones={[{ id: 'total', texto: 'Total' }, { id: 'anio', texto: 'Por año' }]} />} tabla={tablaMunicipioT}>
           <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
             {vistaMuni === 'total' ? (
-              <RankingBarras items={porMuni} fmtValor={num1} fmtCantidad={num} tituloValor="Puntaje global" tituloCantidad="Instituciones" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
+              <RankingBarras items={porMuni} fmtValor={num1} fmtCantidad={num} tituloValor="Puntaje global" tituloCantidad="Instituciones" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} escalaDesdeMinimo />
             ) : (
               <Grafico etiqueta="Puntaje global por municipio, dividido por año" alto={altoBarras(porMunicipioAnio.length, 1.7)} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} opcion={opcionMunicipiosAnio} sinRecuadro />
             )}
@@ -390,13 +412,23 @@ export function Saber11() {
 
         <Seccion
           titulo="Instituciones"
-          nota={`Puntaje global de cada institución en ${anioFoco}, coloreado por su clasificación (ver abajo). Toca una para filtrar.`}
+          nota={`Puntaje global de cada institución en ${anioFoco}, coloreado por su clasificación. Toca una para filtrar.`}
           acciones={<Segmentado etiqueta="Dividir por" valor={vistaInst} onChange={setVistaInst} opciones={[{ id: 'total', texto: 'Total' }, { id: 'anio', texto: 'Por año' }]} />}
           tabla={tablaInstitucionT}
         >
           <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
             {vistaInst === 'total' ? (
-              <RankingBarras items={porInst} fmtValor={num1} tituloValor="Puntaje global" colorBase={placa.main} seleccion={institucionSel} onClic={(n) => setInstitucionSel(alternar(institucionSel, n))} limite={porInst.length} />
+              <>
+                <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-2 text-xs font-semibold text-ink2">
+                  {ORDEN_CLASIF.map((c) => (
+                    <span key={c} className="inline-flex items-center gap-1.5">
+                      <span className="size-2.5 rounded-full" style={{ background: colorClasificacion(c) }} />
+                      {c}
+                    </span>
+                  ))}
+                </div>
+                <RankingBarras items={porInst} fmtValor={num1} tituloValor="Puntaje global" colorBase={placa.main} seleccion={institucionSel} onClic={(n) => setInstitucionSel(alternar(institucionSel, n))} limite={porInst.length} escalaDesdeMinimo />
+              </>
             ) : (
               <Grafico etiqueta="Puntaje global por institución, dividido por año" alto={altoBarras(porInstitucionAnio.length, 1.7)} alClic={(n) => setInstitucionSel(alternar(institucionSel, n))} opcion={opcionInstitucionesAnio} sinRecuadro />
             )}
@@ -406,7 +438,18 @@ export function Saber11() {
         <Seccion titulo="Clasificación" nota={`Cuántas instituciones quedaron en cada categoría del MEN en ${anioFoco}: A+ y A sobresalen, B es medio, C y D necesitan más apoyo.`} tono="lavado">
           <div className="grid items-center gap-6 sm:grid-cols-2">
             <Grafico etiqueta={`Instituciones por clasificación, ${anioFoco}`} alto={300} opcion={opcionClasif} />
-            <Posiciones items={pClasif.map((p) => ({ nombre: p.nombre, valor: p.valor, color: colorClasificacion(p.nombre) }))} fmt={num} />
+            <Posiciones items={pClasif.map((p) => ({ nombre: p.nombre, valor: p.valor, color: colorClasificacion(p.nombre) }))} fmt={num} onClic={(n) => setClasificacionSel(alternar(clasificacionSel, n))} seleccion={clasificacionSel} />
+          </div>
+          <div className="mt-8">
+            <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
+              Por municipio
+            </h3>
+            <p className="mb-4 max-w-2xl text-sm text-ink2">
+              Mezcla de clasificaciones en cada municipio, en {anioFoco}. Ordenados de más a menos instituciones en C o D. Toca uno para filtrar.
+            </p>
+            <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
+              <Grafico etiqueta={`Clasificación por municipio, ${anioFoco}`} alto={altoBarras(clasifPorMuni.length)} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} opcion={opcionClasifPorMuni} sinRecuadro />
+            </div>
           </div>
         </Seccion>
 

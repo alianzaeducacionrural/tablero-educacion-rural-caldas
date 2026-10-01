@@ -215,11 +215,22 @@ export function Saber11() {
     return [...m.entries()]
       .map(([nombre, e]) => {
         const total = [...e.values()].reduce((s, v) => s + v, 0)
-        return { nombre, necesitaApoyo: necesitaApoyo(e), partes: ORDEN_CLASIF.map((c) => ({ nombre: c, valor: total ? ((e.get(c) ?? 0) / total) * 100 : 0, color: colorClasificacion(c) })) }
+        return {
+          nombre,
+          total,
+          necesitaApoyo: necesitaApoyo(e),
+          conteos: Object.fromEntries(ORDEN_CLASIF.map((c) => [c, e.get(c) ?? 0])) as Record<string, number>,
+          partes: ORDEN_CLASIF.map((c) => ({ nombre: c, valor: total ? ((e.get(c) ?? 0) / total) * 100 : 0, color: colorClasificacion(c) })),
+        }
       })
       .sort((a, b) => b.necesitaApoyo - a.necesitaApoyo || alfa(a.nombre, b.nombre))
   }, [filasClasifPorMuni])
   const opcionClasifPorMuni = useMemo(() => apiladasH({ filas: clasifPorMuni.map(({ nombre, partes }) => ({ nombre, partes })), fmt: (n) => pct(n / 100, 0) }), [clasifPorMuni])
+  const tablaClasifMuniT = {
+    archivo: 'saber11-clasificacion-por-municipio',
+    columnas: [{ clave: 'nombre', titulo: 'Municipio' }, ...ORDEN_CLASIF.map((c) => ({ clave: c, titulo: c, tipo: 'numero' as const })), { clave: 'total', titulo: 'Total IE', tipo: 'numero' as const }],
+    filas: clasifPorMuni.map((m) => ({ nombre: m.nombre, ...m.conteos, total: m.total })),
+  }
 
   // Detalle completo: una fila por institución (la del año activo), con buscador; el clic abre el historial completo.
   const [buscarDetalle, setBuscarDetalle] = useState('')
@@ -317,6 +328,7 @@ export function Saber11() {
     { nombre: 'Año tras año', tabla: tablaAnioT },
     { nombre: 'Municipio', tabla: tablaMunicipioT },
     { nombre: 'Institución', tabla: tablaInstitucionT },
+    { nombre: 'Clasificación por municipio', tabla: tablaClasifMuniT },
   ]
 
   return (
@@ -435,7 +447,7 @@ export function Saber11() {
           </div>
         </Seccion>
 
-        <Seccion titulo="Clasificación" nota={`Cuántas instituciones quedaron en cada categoría del MEN en ${anioFoco}: A+ y A sobresalen, B es medio, C y D necesitan más apoyo.`} tono="lavado">
+        <Seccion titulo="Clasificación" nota={`Cuántas instituciones quedaron en cada categoría del MEN en ${anioFoco}: A+ y A sobresalen, B es medio, C y D necesitan más apoyo.`} tono="lavado" tabla={tablaClasifMuniT}>
           <div className="grid items-center gap-6 sm:grid-cols-2">
             <Grafico etiqueta={`Instituciones por clasificación, ${anioFoco}`} alto={300} opcion={opcionClasif} />
             <Posiciones items={pClasif.map((p) => ({ nombre: p.nombre, valor: p.valor, color: colorClasificacion(p.nombre) }))} fmt={num} onClic={(n) => setClasificacionSel(alternar(clasificacionSel, n))} seleccion={clasificacionSel} />

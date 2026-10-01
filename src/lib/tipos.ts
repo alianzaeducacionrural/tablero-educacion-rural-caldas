@@ -47,6 +47,22 @@ export interface Estudiante {
   telAcudiente: string
 }
 
+/** Una fila de Saber 11: una institución en un año (2023-2025), con sus 5 áreas y su clasificación MEN. */
+export interface Saber11 {
+  dane: string
+  municipio: string
+  institucion: string
+  anio: number
+  puntajeGlobal: number | null
+  lecturaCritica: number | null
+  matematicas: number | null
+  socialesCiudadanas: number | null
+  cienciasNaturales: number | null
+  ingles: number | null
+  /** A+ · A · B · C · D (MEN). Vacío si ese año no hay reporte. */
+  clasificacion: string
+}
+
 export interface Meta {
   programa: Programa
   vigencia: number
@@ -80,6 +96,7 @@ export interface Datos {
   estudiantes: Estudiante[]
   metas: Meta[]
   alias: Alias[]
+  saber11: Saber11[]
 }
 
 /** Lo que devuelve el Web App de Apps Script. */

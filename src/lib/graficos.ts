@@ -188,7 +188,7 @@ export function columnas(o: { categorias: string[]; series: SerieCol[]; fmt: (n:
         return `<b>${esc(String(p[0].name))}</b><br/>${p.map((x) => `${x.marker} ${esc(x.seriesName)}: <b>${o.fmt(x.value)}</b>`).join('<br/>')}${p.length > 1 ? `<br/>Total: <b>${o.fmt(total)}</b>` : ''}`
       },
     },
-    xAxis: { type: 'category', data: o.categorias, axisLabel: { color: TINTA.texto, fontWeight: 700, fontSize: 14 }, axisLine: { lineStyle: { color: TINTA.linea } }, axisTick: { show: false } },
+    xAxis: { type: 'category', data: o.categorias, axisLabel: { color: TINTA.texto, fontWeight: 700, fontSize: 14, interval: 0 }, axisLine: { lineStyle: { color: TINTA.linea } }, axisTick: { show: false } },
     yAxis: { type: 'value', axisLabel: { color: TINTA.suave, fontFamily: MONO, fontSize: 11, formatter: o.fmt }, splitLine: { lineStyle: { color: TINTA.linea } }, axisLine: { show: false } },
     series: o.series.map((s, idx) => ({
       type: 'bar',

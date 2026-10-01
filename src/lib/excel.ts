@@ -34,7 +34,9 @@ export function descargarExcel(nombreArchivo: string, hojas: HojaExcel[]) {
       })
       return o
     })
-    const ws = XLSX.utils.json_to_sheet(filas)
+    // header explícito: sin esto, JavaScript reordena solo las claves que parecen número (p. ej. "2023") antes
+    // que el resto (p. ej. "Municipio"), sin importar el orden de inserción, y la columna queda mal puesta.
+    const ws = XLSX.utils.json_to_sheet(filas, { header: tabla.columnas.map((c) => c.titulo) })
 
     tabla.columnas.forEach((c, idx) => {
       if (c.tipo !== 'moneda' && c.tipo !== 'pct') return

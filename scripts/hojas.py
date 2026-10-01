@@ -6,7 +6,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 CSV = RAIZ / "datos" / "sheet"
 
 # Orden de carga = orden de las pestañas en el Sheet.
-HOJAS = ["mf_base", "uc_base", "beneficiados", "estudiantes", "metas_mf", "metas_uc", "mapa_proyectos", "alias", "auditoria"]
+HOJAS = ["mf_base", "uc_base", "beneficiados", "estudiantes", "metas_mf", "metas_uc", "mapa_proyectos", "alias", "saber11", "auditoria"]
 
 _TEXTO_METAS = {"proyecto", "proceso", "actividad"}
 NUMERICAS = {
@@ -15,6 +15,7 @@ NUMERICAS = {
     "beneficiados": {"anio", "beneficiados"},
     "estudiantes": {"anio_ingreso", "anio_graduacion"},
     "alias": {"filas"},
+    "saber11": {"anio", "puntaje_global", "lectura_critica", "matematicas", "sociales_ciudadanas", "ciencias_naturales", "ingles"},
 }
 BOOLEANAS = {"mf_base": {"asistio"}, "uc_base": {"asistio"}}
 

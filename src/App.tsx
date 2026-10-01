@@ -8,6 +8,7 @@ import { Cumplimiento } from './paginas/Cumplimiento'
 import { Estudiantes } from './paginas/Estudiantes'
 import { Programa } from './paginas/Programa'
 import { Resumen } from './paginas/Resumen'
+import { Saber11 } from './paginas/Saber11'
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
               <Route path="universidad-en-el-campo" element={<Programa key="uc" programa="uc" />} />
               <Route path="estudiantes" element={<Estudiantes />} />
               <Route path="cobertura" element={<Cobertura />} />
+              <Route path="saber-11" element={<Saber11 />} />
               <Route path="cumplimiento" element={<Cumplimiento />} />
               <Route path="admin" element={<Admin />} />
               <Route path="*" element={<Resumen />} />

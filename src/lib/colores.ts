@@ -90,6 +90,19 @@ export const PLACAS: Record<string, Placa> = {
     escala: ['#FFF6BF', '#FFE066', '#FFC233', '#FF9F1C', '#F26B21', '#C7431E', '#7C2A13'],
     apoyo: ['#F59A0B', '#E5383B', '#7B5CFF', '#17A6B8', '#12A150', '#2F6BFF'],
   },
+  saber11: {
+    id: 'saber11',
+    nombre: 'Saber 11',
+    ruta: '/saber-11',
+    frase: 'Cómo les está yendo en las pruebas',
+    main: '#0D9488',
+    ink: '#07322D',
+    soft: '#E3FBF6',
+    wash: '#B7F2E6',
+    on: '#FFFFFF',
+    escala: ['#FFE1DA', '#FFB4A2', '#FFD166', '#9AE6B4', '#4DC9A1', '#0D9488', '#0B5D52'],
+    apoyo: ['#0D9488', '#2F6BFF', '#FFB000', '#7B5CFF', '#E5383B', '#F0439A'],
+  },
   cumplimiento: {
     id: 'cumplimiento',
     nombre: 'Cumplimiento',
@@ -118,7 +131,7 @@ export const PLACAS: Record<string, Placa> = {
   },
 }
 
-export const ORDEN_PLACAS = ['resumen', 'mf', 'uc', 'estudiantes', 'cobertura', 'cumplimiento']
+export const ORDEN_PLACAS = ['resumen', 'mf', 'uc', 'estudiantes', 'cobertura', 'saber11', 'cumplimiento']
 
 export function placaDeRuta(pathname: string): Placa {
   if (pathname.startsWith('/admin')) return PLACAS.admin
@@ -141,6 +154,16 @@ export function colorEstadoEstudiante(estado: string): string {
   if (/gradu/i.test(estado)) return '#12A150'
   if (/desert/i.test(estado)) return '#E5383B'
   return '#2F6BFF'
+}
+/** Clasificación MEN de Saber 11: A+/A sobresalen, B es medio, C y D necesitan más apoyo. */
+export function colorClasificacion(c: string): string {
+  const p = c.trim().toUpperCase()
+  if (p === 'A+') return '#0B5D52'
+  if (p === 'A') return '#0D9488'
+  if (p === 'B') return '#2F9BFF'
+  if (p === 'C') return '#FFB000'
+  if (p === 'D') return '#E5383B'
+  return TINTA.vacio
 }
 export function colorEstadoActividad(estado: string, programa: Programa): string {
   if (/^convenio$/i.test(estado)) return colorPrograma(programa)

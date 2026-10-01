@@ -198,6 +198,76 @@ def actualizar_estado(est, nombre_est, ruta):
     }
 
 
+def plegar_saber11(s):
+    """Como plegar(), pero quitando 'Institución Educativa'/'Instituto'/'I.E.' y '- Sede Única': en el
+    archivo de Saber 11 esas palabras varían de una institución a otra y no están en nuestros propios datos."""
+    p = plegar(s)
+    p = re.sub(r"^instituci[o0]n\s+educativa\s+|^instituto\s+|^i\.?\s*e\.?\s+", "", p)
+    p = re.sub(r"\s*-?\s*sede\s+(unica|principal)\s*$", "", p)
+    return p.strip()
+
+
+def leer_saber11(ruta, mf, uc, ben):
+    """Cruza el archivo de Saber 11 (dos hojas: puntajes e hitos de clasificación, unidas por código DANE) con
+    SOLO las instituciones que aparecen en nuestros propios datos (mf/uc/beneficiados): es la decisión explícita
+    del equipo de no publicar aquí instituciones que no acompañamos, aunque estén en el archivo de origen.
+
+    El cruce es por (municipio, institución) ya plegados, con una segunda pasada por contención de texto (una
+    cadena dentro de la otra) para los nombres que difieren por sufijos como "- Sede Principal" repetidos. Lo que
+    no cruza se reporta (sin ser un error: es información de fuera de nuestro alcance, no un dato mal escrito)."""
+    candidatos = {}  # municipio plegado -> {institución plegada -> nombre tal como lo usamos nosotros}
+    for df in (mf, uc, ben):
+        for m, i in zip(df["municipio"], df["institucion"]):
+            candidatos.setdefault(plegar(m), {})[plegar_saber11(i)] = i
+
+    def emparejar(muni_plegado, institucion_cruda):
+        ip = plegar_saber11(institucion_cruda)
+        cand = candidatos.get(muni_plegado, {})
+        if ip in cand:
+            return cand[ip]
+        for clave, nombre in cand.items():
+            if len(clave) >= 4 and (clave in ip or ip in clave):
+                return nombre
+        return None
+
+    # Las columnas de puntaje no tienen nombre único en el Excel (están fusionadas en el encabezado): se leen por posición.
+    crudo = pd.read_excel(ruta, sheet_name="IE Urbana -Rural", header=None, skiprows=2)
+    crudo.columns = ["dane", "municipio", "institucion", "tipo", "naturaleza", "pg_2023", "pg_2024", "pg_2025", "lc_2023", "lc_2024", "lc_2025", "ma_2023", "ma_2024", "ma_2025", "sc_2023", "sc_2024", "sc_2025", "cn_2023", "cn_2024", "cn_2025", "in_2023", "in_2024", "in_2025"]
+    clasif = pd.read_excel(ruta, sheet_name="Clasificación IE Urbana-Rural", header=None, skiprows=6)
+    clasif.columns = ["municipio", "dane", "institucion", "tipo", "sector", "clasif_2023", "clasif_2024", "clasif_2025"]
+    # Esta hoja repite cada institución como "Establecimiento" y como "Sede" (misma DANE, a veces con otra
+    # clasificación): se usa solo la fila "Establecimiento", que es la que coincide 1 a 1 con la hoja de puntajes.
+    clasif = clasif[clasif["tipo"] == "Establecimiento"][["dane", "clasif_2023", "clasif_2024", "clasif_2025"]]
+
+    crudo = crudo.merge(clasif, on="dane", how="left", validate="one_to_one")
+
+    filas = []
+    excluidas = []
+    for _, r in crudo.iterrows():
+        mp = plegar(r["municipio"])
+        nombre = emparejar(mp, r["institucion"])
+        if nombre is None:
+            excluidas.append((limpiar(r["municipio"]), limpiar(r["institucion"])))
+            continue
+        municipio_final = next((m for df in (mf, uc, ben) for m in df["municipio"] if plegar(m) == mp), limpiar(r["municipio"]).title())
+        for anio in (2023, 2024, 2025):
+            fila = {
+                "dane": str(int(r["dane"])), "municipio": municipio_final, "institucion": nombre, "anio": anio,
+                "puntaje_global": r[f"pg_{anio}"], "lectura_critica": r[f"lc_{anio}"], "matematicas": r[f"ma_{anio}"],
+                "sociales_ciudadanas": r[f"sc_{anio}"], "ciencias_naturales": r[f"cn_{anio}"], "ingles": r[f"in_{anio}"],
+                "clasificacion": r[f"clasif_{anio}"],
+            }
+            if pd.isna(fila["puntaje_global"]) and pd.isna(fila["clasificacion"]):
+                continue  # ese año no se presentó: ni puntaje ni clasificación (p. ej. un colegio nuevo)
+            filas.append(fila)
+
+    out = pd.DataFrame(filas, columns=["dane", "municipio", "institucion", "anio", "puntaje_global", "lectura_critica", "matematicas", "sociales_ciudadanas", "ciencias_naturales", "ingles", "clasificacion"])
+    for c in ("puntaje_global", "lectura_critica", "matematicas", "sociales_ciudadanas", "ciencias_naturales", "ingles"):
+        out[c] = out[c].map(lambda x: num(x, 0))
+    out["clasificacion"] = out["clasificacion"].map(lambda x: limpiar(x) if pd.notna(x) and plegar(x) != "no hay reporte" else "")
+    return out, len(crudo), excluidas
+
+
 def leer_metas(path, n_cols, nombres):
     df = pd.read_excel(path, sheet_name="Gobernación").iloc[:, :n_cols]
     df.columns = nombres
@@ -214,6 +284,7 @@ def main():
     ap.add_argument("--mf-raiz", type=Path, default=docs / "Informe Modelos Flexibles.xlsx")
     ap.add_argument("--uc-raiz", type=Path, default=docs / "Informe U Campo.xlsx")
     ap.add_argument("--estado-tecnicos", type=Path, default=docs / "estado técnicos" / "Listado_General_Estudiantes.xlsx", help="Listado General con el estado actualizado de los estudiantes (cohortes 2024 en adelante). Opcional.")
+    ap.add_argument("--saber11", type=Path, default=docs / "Saber 11" / "Rural- Urbana Rural- Pruebas Saber 11..xlsx", help="Puntajes y clasificación de Saber 11 por institución, 2023-2025. Opcional.")
     ap.add_argument("--vigencia-metas", type=int, default=2024, help="Vigencia a la que se asignan las metas (PROVISIONAL).")
     ap.add_argument("--out", type=Path, default=RAIZ / "datos" / "sheet")
     a = ap.parse_args()
@@ -275,6 +346,10 @@ def main():
     c_inst.cerrar()
     for df in (mf, uc, ben, est):
         df["institucion"] = [c_inst(m, i) for m, i in zip(df["municipio"], df["institucion"])]
+
+    saber11 = saber11_total = saber11_excluidas = None
+    if a.saber11.exists():
+        saber11, saber11_total, saber11_excluidas = leer_saber11(a.saber11, mf, uc, ben)
 
     for df in (mf, uc):
         for v in df["actividad"]:
@@ -370,6 +445,8 @@ def main():
         "alias": alias.sort_values(["tipo", "ambito", "normalizado", "filas"], ascending=[True, True, True, False]),
         "auditoria": pd.DataFrame(columns=["fecha", "usuario", "accion", "detalle"]),
     }
+    if saber11 is not None:
+        salidas["saber11"] = saber11
     a.out.mkdir(parents=True, exist_ok=True)
     for nombre, df in salidas.items():
         df.to_csv(a.out / f"{nombre}.csv", index=False, encoding="utf-8", lineterminator="\n")
@@ -410,6 +487,18 @@ def main():
     con_contacto = int((est["documento"] != "").sum())
     p(f"  Estudiantes con nombre: {con_nombre} de {len(est)}")
     p(f"  Estudiantes con documento/teléfono/correo/acudiente (cohortes del Listado General): {con_contacto}")
+
+    if saber11 is not None:
+        p("\n=== SABER 11 ===")
+        n_inst = saber11["dane"].nunique()
+        p(f"  Instituciones en el archivo de origen: {saber11_total}")
+        p(f"  De esas, las que acompañamos (se publican): {n_inst} · excluidas por no ser nuestras: {len(saber11_excluidas)}")
+        p(f"  Filas (institución x año, solo años con dato): {len(saber11)}")
+        p(f"  Municipios: {sorted(saber11['municipio'].unique())}")
+        if saber11_excluidas:
+            p("  Excluidas (no están en mf/uc/beneficiados, revisar si falta un alias):")
+            for m, i in saber11_excluidas:
+                p(f"    {m} / {i}")
 
     p("\n=== FOTO DE REFERENCIA (informativa) ===")
     depto = sum(float(x) for df in (out_mf, out_uc) for x in df.loc[df["aportante"].map(plegar).str.startswith("depto"), "valor"])

@@ -1,4 +1,4 @@
-import type { Alias, Beneficiado, Datos, Estudiante, FilaBase, HojaCruda, Meta, Programa, RespuestaDatos } from './tipos'
+import type { Alias, Beneficiado, Datos, Estudiante, FilaBase, HojaCruda, Meta, Programa, RespuestaDatos, Saber11 } from './tipos'
 
 export const limpiar = (s: unknown) => String(s ?? '').replace(/\s+/g, ' ').trim()
 export const plegar = (s: unknown) =>
@@ -72,6 +72,21 @@ export function parsear(r: RespuestaDatos): Datos {
     telAcudiente: limpiar(o.tel_acudiente),
   }))
 
+  const numOrNull = (v: unknown) => (v === '' || v == null ? null : num(v))
+  const saber11: Saber11[] = objetos(r.hojas.saber11).map((o) => ({
+    dane: limpiar(o.dane),
+    municipio: limpiar(o.municipio),
+    institucion: limpiar(o.institucion),
+    anio: num(o.anio),
+    puntajeGlobal: numOrNull(o.puntaje_global),
+    lecturaCritica: numOrNull(o.lectura_critica),
+    matematicas: numOrNull(o.matematicas),
+    socialesCiudadanas: numOrNull(o.sociales_ciudadanas),
+    cienciasNaturales: numOrNull(o.ciencias_naturales),
+    ingles: numOrNull(o.ingles),
+    clasificacion: limpiar(o.clasificacion),
+  }))
+
   const metas: Meta[] = []
   ;(['mf', 'uc'] as Programa[]).forEach((programa) => {
     objetos(r.hojas[`metas_${programa}`]).forEach((o) => {
@@ -103,7 +118,7 @@ export function parsear(r: RespuestaDatos): Datos {
     filas: num(o.filas),
   }))
 
-  return { generado: r.generado, base, beneficiados, estudiantes, metas, alias }
+  return { generado: r.generado, base, beneficiados, estudiantes, metas, alias, saber11 }
 }
 
 /** Elige, por (ámbito, texto plegado), la variante más frecuente como nombre canónico. */
@@ -147,14 +162,14 @@ export function normalizar(d: Datos): Datos {
   // Municipios
   const cMuni = new Canon()
   const muniAlias = (v: string) => ap('municipio', '', v)
-  ;[base, d.beneficiados, d.estudiantes].forEach((arr) => arr.forEach((f) => cMuni.ver('', muniAlias(f.municipio))))
+  ;[base, d.beneficiados, d.estudiantes, d.saber11].forEach((arr) => arr.forEach((f) => cMuni.ver('', muniAlias(f.municipio))))
   cMuni.cerrar()
   const muni = (v: string) => cMuni.usar('', muniAlias(v))
 
   // Instituciones (el ámbito es el municipio: "Pío XII" existe en 3 municipios)
   const cInst = new Canon()
   const inst = (m: string, v: string) => ap('institucion', m, v)
-  ;[base, d.beneficiados, d.estudiantes].forEach((arr) => arr.forEach((f) => cInst.ver(muni(f.municipio), inst(muni(f.municipio), f.institucion))))
+  ;[base, d.beneficiados, d.estudiantes, d.saber11].forEach((arr) => arr.forEach((f) => cInst.ver(muni(f.municipio), inst(muni(f.municipio), f.institucion))))
   cInst.cerrar()
   const instCanon = (m: string, v: string) => cInst.usar(muni(m), inst(muni(m), v))
 
@@ -204,6 +219,7 @@ export function normalizar(d: Datos): Datos {
       genero: genero(e.genero),
     })),
     metas: d.metas.map((m) => ({ ...m, actividad: cAct.usar('', act(m.actividad)), grupo: grupo(m.programa, m.grupo) })),
+    saber11: d.saber11.map((s) => ({ ...s, municipio: muni(s.municipio), institucion: instCanon(s.municipio, s.institucion) })),
   }
 }
 
@@ -245,6 +261,10 @@ export function detectarDuplicados(d: Datos): GrupoDuplicado[] {
   d.estudiantes.forEach((e) => {
     ver('municipio', '', e.municipio)
     ver('institucion', e.municipio, e.institucion)
+  })
+  d.saber11.forEach((s) => {
+    ver('municipio', '', s.municipio)
+    ver('institucion', s.municipio, s.institucion)
   })
 
   const out: GrupoDuplicado[] = []

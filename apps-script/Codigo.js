@@ -14,7 +14,7 @@ var TOKEN_SHA256 = '884eb7978bf80fdfaed03e0bef24de58855e406f5fd1b1232390dd0681b6
 // Clave del panel de administración: registrar actividades, editar metas y corregir duplicados.
 var CLAVE_ADMIN_SHA256 = 'a03f4a6715fd6e6a2397e30dce22b95346bb38b116cd71071e91ea712d9ffcac';
 
-var HOJAS_DATOS = ['mf_base', 'uc_base', 'beneficiados', 'estudiantes', 'metas_mf', 'metas_uc', 'mapa_proyectos', 'alias'];
+var HOJAS_DATOS = ['mf_base', 'uc_base', 'beneficiados', 'estudiantes', 'metas_mf', 'metas_uc', 'mapa_proyectos', 'alias', 'saber11'];
 var HOJA_AUDITORIA = 'auditoria';
 var CACHE_TTL = 300;
 var CACHE_CHUNK = 40000; // caracteres; con tildes (2 bytes) queda bajo el límite de 100 KB por clave
@@ -27,8 +27,8 @@ var PROGRAMAS = {
 
 // Dónde vive cada tipo de valor, para poder renombrarlo en todas las pestañas a la vez.
 var DESTINOS = {
-  municipio: [['mf_base', 'municipio'], ['uc_base', 'municipio'], ['beneficiados', 'municipio'], ['estudiantes', 'municipio']],
-  institucion: [['mf_base', 'institucion'], ['uc_base', 'institucion'], ['beneficiados', 'institucion'], ['estudiantes', 'institucion']],
+  municipio: [['mf_base', 'municipio'], ['uc_base', 'municipio'], ['beneficiados', 'municipio'], ['estudiantes', 'municipio'], ['saber11', 'municipio']],
+  institucion: [['mf_base', 'institucion'], ['uc_base', 'institucion'], ['beneficiados', 'institucion'], ['estudiantes', 'institucion'], ['saber11', 'institucion']],
   actividad: [['mf_base', 'actividad'], ['uc_base', 'actividad'], ['metas_mf', 'actividad'], ['metas_uc', 'actividad']],
   proyecto: [['mf_base', 'proyecto'], ['metas_mf', 'proyecto']],
   proceso: [['uc_base', 'proceso'], ['metas_uc', 'proceso']],

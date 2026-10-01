@@ -208,24 +208,10 @@ export function Saber11() {
       e.set(s.clasificacion, (e.get(s.clasificacion) ?? 0) + 1)
       m.set(s.municipio, e)
     })
-    const necesitaApoyo = (e: Map<string, number>) => {
-      const total = [...e.values()].reduce((s, v) => s + v, 0)
-      return total ? ((e.get('C') ?? 0) + (e.get('D') ?? 0)) / total : 0
-    }
     return [...m.entries()]
-      .map(([nombre, e]) => {
-        const total = [...e.values()].reduce((s, v) => s + v, 0)
-        return {
-          nombre,
-          total,
-          necesitaApoyo: necesitaApoyo(e),
-          conteos: Object.fromEntries(ORDEN_CLASIF.map((c) => [c, e.get(c) ?? 0])) as Record<string, number>,
-          partes: ORDEN_CLASIF.map((c) => ({ nombre: c, valor: total ? ((e.get(c) ?? 0) / total) * 100 : 0, color: colorClasificacion(c) })),
-        }
-      })
-      .sort((a, b) => b.necesitaApoyo - a.necesitaApoyo || alfa(a.nombre, b.nombre))
+      .map(([nombre, e]) => ({ nombre, total: [...e.values()].reduce((s, v) => s + v, 0), conteos: Object.fromEntries(ORDEN_CLASIF.map((c) => [c, e.get(c) ?? 0])) as Record<string, number> }))
+      .sort((a, b) => alfa(a.nombre, b.nombre))
   }, [filasClasifPorMuni])
-  const opcionClasifPorMuni = useMemo(() => apiladasH({ filas: clasifPorMuni.map(({ nombre, partes }) => ({ nombre, partes })), fmt: (n) => pct(n / 100, 0) }), [clasifPorMuni])
   const tablaClasifMuniT = {
     archivo: 'saber11-clasificacion-por-municipio',
     columnas: [{ clave: 'nombre', titulo: 'Municipio' }, ...ORDEN_CLASIF.map((c) => ({ clave: c, titulo: c, tipo: 'numero' as const })), { clave: 'total', titulo: 'Total IE', tipo: 'numero' as const }],
@@ -456,11 +442,62 @@ export function Saber11() {
             <h3 className="display mb-1 text-2xl" style={{ color: 'var(--ink)' }}>
               Por municipio
             </h3>
-            <p className="mb-4 max-w-2xl text-sm text-ink2">
-              Mezcla de clasificaciones en cada municipio, en {anioFoco}. Ordenados de más a menos instituciones en C o D. Toca uno para filtrar.
-            </p>
-            <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
-              <Grafico etiqueta={`Clasificación por municipio, ${anioFoco}`} alto={altoBarras(clasifPorMuni.length)} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} opcion={opcionClasifPorMuni} sinRecuadro />
+            <p className="mb-4 max-w-2xl text-sm text-ink2">Cuántas instituciones de cada municipio quedaron en cada categoría, en {anioFoco}. Toca uno para filtrar.</p>
+            <div className="max-h-[560px] overflow-auto rounded-3xl bg-white ring-1 ring-line">
+              <table className="w-full border-collapse text-sm">
+                <thead className="sticky top-0 bg-white">
+                  <tr>
+                    <th scope="col" className="border-b-2 border-main px-4 py-3 text-left font-bold">Municipio</th>
+                    {ORDEN_CLASIF.map((c) => (
+                      <th key={c} scope="col" className="border-b-2 border-main px-3 py-3 text-center font-bold">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="size-2.5 rounded-full" style={{ background: colorClasificacion(c) }} />
+                          {c}
+                        </span>
+                      </th>
+                    ))}
+                    <th scope="col" className="border-b-2 border-main px-4 py-3 text-center font-bold">Total IE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clasifPorMuni.map((m) => {
+                    const on = f.municipios.includes(m.nombre)
+                    const hay = f.municipios.length > 0
+                    return (
+                      <tr
+                        key={m.nombre}
+                        tabIndex={0}
+                        role="button"
+                        aria-pressed={on}
+                        onClick={() => f.setMunicipios(alternar(f.municipios, m.nombre))}
+                        onKeyDown={(e) => e.key === 'Enter' && f.setMunicipios(alternar(f.municipios, m.nombre))}
+                        className={`cursor-pointer border-b border-line transition-opacity last:border-0 hover:bg-wash/60 ${hay && !on ? 'opacity-40' : ''}`}
+                      >
+                        <td className="px-4 py-2.5 font-bold" style={{ color: 'var(--ink)' }}>
+                          {m.nombre}
+                        </td>
+                        {ORDEN_CLASIF.map((c) => {
+                          const n = m.conteos[c]
+                          return (
+                            <td key={c} className="px-3 py-2 text-center">
+                              {n > 0 ? (
+                                <span className="cota inline-flex min-w-9 items-center justify-center rounded-full px-2.5 py-1 text-xs font-extrabold text-white" style={{ background: colorClasificacion(c) }}>
+                                  {n}
+                                </span>
+                              ) : (
+                                <span className="text-muted">—</span>
+                              )}
+                            </td>
+                          )
+                        })}
+                        <td className="cota px-4 py-2.5 text-center text-base font-extrabold" style={{ color: 'var(--ink)' }}>
+                          {m.total}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         </Seccion>

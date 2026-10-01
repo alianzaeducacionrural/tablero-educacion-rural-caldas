@@ -169,7 +169,25 @@ export function Resumen() {
       { indicador: 'Estudiantes técnicos financiados (Universidad en el Campo)', valor: estudiantes.length },
     ],
   }
+  const tablaBaseT = {
+    archivo: 'resumen-base-de-datos',
+    columnas: [
+      { clave: 'programa', titulo: 'Programa' },
+      { clave: 'anio', titulo: 'Año', tipo: 'numero' as const },
+      { clave: 'municipio', titulo: 'Municipio' },
+      { clave: 'institucion', titulo: 'Institución' },
+      { clave: 'grupo', titulo: 'Proyecto / proceso' },
+      { clave: 'actividad', titulo: 'Actividad' },
+      { clave: 'estado', titulo: 'Estado' },
+      { clave: 'aportante', titulo: 'Aportante' },
+      { clave: 'asistio', titulo: 'Asistió' },
+      { clave: 'cantidad', titulo: 'Cantidad', tipo: 'cantidad' as const },
+      { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const },
+    ],
+    filas: base.map((x) => ({ programa: PROGRAMAS[x.programa].nombre, anio: x.anio, municipio: x.municipio, institucion: x.institucion, grupo: x.grupo, actividad: x.actividad, estado: x.estado, aportante: x.aportante, asistio: x.asistio ? 'Sí' : 'No', cantidad: x.cantidad, valor: x.valor })),
+  }
   const hojasExcel = [
+    { nombre: 'Base de datos', tabla: tablaBaseT },
     { nombre: 'Resumen', tabla: tablaResumenT },
     { nombre: 'Programa y proyecto', tabla: tablaFlujoT },
     { nombre: 'Municipio', tabla: tablaMunicipioT },

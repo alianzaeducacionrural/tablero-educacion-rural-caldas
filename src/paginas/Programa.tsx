@@ -143,7 +143,24 @@ export function Programa({ programa }: { programa: Prog }) {
   const tablaEstadoT = tablaDoble('Estado', dobles.estado, `${programa}-estados`)
   const tablaAportanteT = tablaDoble('Aportante', pAportante.map((p) => ({ ...p, cantidad: sumar(t.filter((x) => x.aportante === p.nombre), (x) => x.cantidad) })), `${programa}-aportantes`)
   const tablaAnioT = { archivo: `${programa}-por-anio`, columnas: [{ clave: 'anio', titulo: 'Año' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const }, { clave: 'cantidad', titulo: 'Actividades', tipo: 'cantidad' as const }], filas: filasAnio.map((a) => ({ anio: String(a.anio), valor: a.valor, cantidad: a.cantidad })) }
+  const tablaBaseT = {
+    archivo: `${programa}-base-de-datos`,
+    columnas: [
+      { clave: 'anio', titulo: 'Año', tipo: 'numero' as const },
+      { clave: 'municipio', titulo: 'Municipio' },
+      { clave: 'institucion', titulo: 'Institución' },
+      { clave: 'grupo', titulo: cfg.grupo },
+      { clave: 'actividad', titulo: 'Actividad' },
+      { clave: 'estado', titulo: 'Estado' },
+      { clave: 'aportante', titulo: 'Aportante' },
+      { clave: 'asistio', titulo: 'Asistió' },
+      { clave: 'cantidad', titulo: 'Cantidad', tipo: 'cantidad' as const },
+      { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const },
+    ],
+    filas: t.map((x) => ({ anio: x.anio, municipio: x.municipio, institucion: etiquetaInst(x), grupo: x.grupo, actividad: x.actividad, estado: etiquetaEstado(x.estado), aportante: x.aportante, asistio: x.asistio ? 'Sí' : 'No', cantidad: x.cantidad, valor: x.valor })),
+  }
   const hojasExcel = [
+    { nombre: 'Base de datos', tabla: tablaBaseT },
     { nombre: cfg.grupo, tabla: tablaGrupoT },
     { nombre: 'Actividad', tabla: tablaActividadT },
     { nombre: 'Municipio', tabla: tablaMunicipioT },

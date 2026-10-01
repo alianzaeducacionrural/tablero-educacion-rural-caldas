@@ -64,6 +64,12 @@ export function parsear(r: RespuestaDatos): Datos {
     estado: limpiar(o.estado),
     financiador: limpiar(o.financiador),
     anioGraduacion: o.anio_graduacion === '' || o.anio_graduacion == null ? null : num(o.anio_graduacion),
+    nombre: limpiar(o.nombre),
+    documento: limpiar(o.documento),
+    telefono: limpiar(o.telefono),
+    correo: limpiar(o.correo),
+    acudiente: limpiar(o.acudiente),
+    telAcudiente: limpiar(o.tel_acudiente),
   }))
 
   const metas: Meta[] = []

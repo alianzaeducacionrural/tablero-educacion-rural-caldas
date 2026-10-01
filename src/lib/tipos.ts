@@ -39,6 +39,12 @@ export interface Estudiante {
   estado: string
   financiador: string
   anioGraduacion: number | null
+  nombre: string
+  documento: string
+  telefono: string
+  correo: string
+  acudiente: string
+  telAcudiente: string
 }
 
 export interface Meta {

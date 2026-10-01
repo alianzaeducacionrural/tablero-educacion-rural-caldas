@@ -84,16 +84,22 @@ export function Cumplimiento() {
   const tablaMetasT = {
     archivo: `metas-${programa}-${vigencia}`,
     columnas: [
+      { clave: 'vigencia', titulo: 'Vigencia', tipo: 'numero' as const },
       { clave: 'grupo', titulo: cfg.grupo },
       { clave: 'actividad', titulo: 'Actividad' },
+      { clave: 'valorUnitario', titulo: 'Valor unitario', tipo: 'moneda' as const },
       { clave: 'meta', titulo: 'Meta', tipo: 'cantidad' as const },
       { clave: 'ejecutado', titulo: 'Ejecutado', tipo: 'cantidad' as const },
       { clave: 'faltante', titulo: 'Faltante', tipo: 'cantidad' as const },
       { clave: 'adicional', titulo: 'Adicional', tipo: 'cantidad' as const },
       { clave: 'valorMeta', titulo: 'Valor meta', tipo: 'moneda' as const },
       { clave: 'valorEjecutado', titulo: 'Valor ejecutado', tipo: 'moneda' as const },
+      { clave: 'valorFaltante', titulo: 'Valor faltante', tipo: 'moneda' as const },
+      { clave: 'reinversion', titulo: 'Reinversión', tipo: 'moneda' as const },
+      { clave: 'departamento', titulo: 'Departamento de Caldas', tipo: 'moneda' as const },
+      { clave: 'comite', titulo: 'Comité de Cafeteros', tipo: 'moneda' as const },
     ],
-    filas: metas.map((m) => ({ grupo: m.grupo, actividad: m.actividad, meta: m.meta, ejecutado: m.ejecutado, faltante: m.faltante, adicional: m.adicional, valorMeta: m.valorMeta, valorEjecutado: m.valorEjecutado })),
+    filas: metas.map((m) => ({ vigencia: m.vigencia, grupo: m.grupo, actividad: m.actividad, valorUnitario: m.valorUnitario, meta: m.meta, ejecutado: m.ejecutado, faltante: m.faltante, adicional: m.adicional, valorMeta: m.valorMeta, valorEjecutado: m.valorEjecutado, valorFaltante: m.valorFaltante, reinversion: m.reinversion, departamento: m.departamento, comite: m.comite })),
   }
   const tablaCofinT = { archivo: 'cofinanciacion', columnas: [{ clave: 'g', titulo: cfg.grupo }, { clave: 'd', titulo: 'Departamento de Caldas', tipo: 'moneda' as const }, { clave: 'c', titulo: 'Comité de Cafeteros', tipo: 'moneda' as const }], filas: filasCofin.map((f) => ({ g: f.nombre, d: f.partes[0].valor, c: f.partes[1].valor })) }
   const hojasExcel = [

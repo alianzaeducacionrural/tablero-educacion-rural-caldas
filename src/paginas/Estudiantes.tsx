@@ -26,7 +26,7 @@ export function Estudiantes() {
   const { datos, f } = useTablero()
   const [sel, setSel] = useState<Record<Local, string[]>>(VACIO)
 
-  // Todos los estudiantes, sin importar el aportante. Solo municipios rurales de Caldas (sin Manizales, que tiene su propio convenio). Sin nombres: el tablero es público.
+  // Todos los estudiantes, sin importar el aportante. Solo municipios rurales de Caldas (sin Manizales, que tiene su propio convenio).
   const filas = useMemo(() => datos.estudiantes.filter((e) => MUNICIPIOS_RURALES.has(e.municipio)), [datos])
 
   // El año elegido (filtro global) es el año de ingreso de cada estudiante: su cohorte.
@@ -112,6 +112,43 @@ export function Estudiantes() {
   const tablaGeneroT = { archivo: 'estudiantes-por-genero', columnas: [{ clave: 'nombre', titulo: 'Género' }, { clave: 'valor', titulo: 'Estudiantes', tipo: 'numero' as const }], filas: pGenero.map((p) => ({ nombre: p.nombre, valor: p.valor })) }
   const tablaCohorteT = { archivo: 'estudiantes-por-cohorte-y-estado', columnas: [{ clave: 'cohorte', titulo: 'Año de ingreso' }, ...estados.map((e) => ({ clave: e, titulo: e, tipo: 'numero' as const }))], filas: cohortes.map((c) => Object.fromEntries([['cohorte', c], ...estados.map((e) => [e, vistas.anio.filter((x) => String(x.anioIngreso) === c && x.estado === e).length])])) }
   const tablaGradT = { archivo: 'graduados-por-anio', columnas: [{ clave: 'anio', titulo: 'Año de grado' }, { clave: 'valor', titulo: 'Graduados', tipo: 'numero' as const }], filas: aniosGrad.map((a) => ({ anio: String(a), valor: vistas.anio.filter((e) => e.anioGraduacion === a).length })) }
+  const tablaListadoT = {
+    archivo: 'listado-tecnicos-profesionales',
+    columnas: [
+      { clave: 'nombre', titulo: 'Nombre' },
+      { clave: 'documento', titulo: 'Documento' },
+      { clave: 'municipio', titulo: 'Municipio' },
+      { clave: 'institucion', titulo: 'Institución' },
+      { clave: 'universidad', titulo: 'Universidad' },
+      { clave: 'programa', titulo: 'Programa' },
+      { clave: 'anioIngreso', titulo: 'Año de ingreso', tipo: 'numero' as const },
+      { clave: 'estado', titulo: 'Estado' },
+      { clave: 'genero', titulo: 'Género' },
+      { clave: 'financiador', titulo: 'Aportante' },
+      { clave: 'anioGraduacion', titulo: 'Año de grado', tipo: 'numero' as const },
+      { clave: 'telefono', titulo: 'Teléfono' },
+      { clave: 'correo', titulo: 'Correo' },
+      { clave: 'acudiente', titulo: 'Acudiente' },
+      { clave: 'telAcudiente', titulo: 'Tel. Acudiente' },
+    ],
+    filas: t.map((e) => ({
+      nombre: e.nombre,
+      documento: e.documento,
+      municipio: e.municipio,
+      institucion: e.institucion,
+      universidad: e.universidad,
+      programa: abrevPrograma(e.programa),
+      anioIngreso: e.anioIngreso,
+      estado: e.estado,
+      genero: e.genero,
+      financiador: e.financiador,
+      anioGraduacion: e.anioGraduacion ?? '',
+      telefono: e.telefono,
+      correo: e.correo,
+      acudiente: e.acudiente,
+      telAcudiente: e.telAcudiente,
+    })),
+  }
   const tablaResumenT = {
     archivo: 'resumen',
     columnas: [{ clave: 'indicador', titulo: 'Indicador' }, { clave: 'valor', titulo: 'Valor', tipo: 'numero' as const }],
@@ -124,6 +161,7 @@ export function Estudiantes() {
     ],
   }
   const hojasExcel = [
+    { nombre: 'Listado de estudiantes', tabla: tablaListadoT },
     { nombre: 'Resumen', tabla: tablaResumenT },
     { nombre: 'Municipio', tabla: tablaMunicipioT },
     { nombre: 'Universidad', tabla: tablaUniT },
@@ -135,7 +173,7 @@ export function Estudiantes() {
 
   return (
     <>
-      <PlacaCabecera placa={placa} titulo="Técnicos Profesionales" texto="Estudiantes técnicos profesionales de Universidad en el Campo, en los municipios rurales de Caldas. No se muestran nombres.">
+      <PlacaCabecera placa={placa} titulo="Técnicos Profesionales" texto="Estudiantes técnicos profesionales de Universidad en el Campo, en los municipios rurales de Caldas. El listado con nombre y datos de contacto está en el Excel descargable.">
         <BotonExcel archivo="tecnicos-profesionales-educacion-rural-caldas" hojas={hojasExcel} />
       </PlacaCabecera>
 

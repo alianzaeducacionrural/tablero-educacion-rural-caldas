@@ -144,7 +144,19 @@ export function Cobertura() {
     columnas: [{ clave: 'municipio', titulo: 'Municipio' }, { clave: 'institucion', titulo: 'Institución' }, { clave: 'sede', titulo: 'Sede' }, { clave: 'beneficiados', titulo: 'Beneficiados', tipo: 'numero' as const }],
     filas: arbolTabla.flatMap((m) => m.hijos.flatMap((i) => i.hijos.map((s) => ({ municipio: m.nombre, institucion: i.nombre, sede: s.nombre, beneficiados: s.total })))),
   }
+  const tablaBaseT = {
+    archivo: 'cobertura-base-de-datos',
+    columnas: [
+      { clave: 'anio', titulo: 'Año', tipo: 'numero' as const },
+      { clave: 'municipio', titulo: 'Municipio' },
+      { clave: 'institucion', titulo: 'Institución' },
+      { clave: 'sede', titulo: 'Sede' },
+      { clave: 'beneficiados', titulo: 'Beneficiados', tipo: 'numero' as const },
+    ],
+    filas: filas.map((b) => ({ anio: b.anio, municipio: b.municipio, institucion: b.institucion, sede: b.sede, beneficiados: b.beneficiados })),
+  }
   const hojasExcel = [
+    { nombre: 'Base de datos', tabla: tablaBaseT },
     { nombre: 'Año', tabla: tablaAnioT },
     { nombre: 'Municipio', tabla: tablaMunicipioT },
     { nombre: 'Institución', tabla: tablaInstitucionT },

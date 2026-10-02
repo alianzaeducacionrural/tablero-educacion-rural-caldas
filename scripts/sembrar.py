@@ -297,7 +297,7 @@ def main():
     ap.add_argument("--uc-raiz", type=Path, default=docs / "Informe U Campo.xlsx")
     ap.add_argument("--estado-tecnicos", type=Path, default=docs / "estado técnicos" / "Listado_General_Estudiantes.xlsx", help="Listado General con el estado actualizado de los estudiantes (cohortes 2024 en adelante). Opcional.")
     ap.add_argument("--saber11", type=Path, default=docs / "Saber 11" / "Rural- Urbana Rural- Pruebas Saber 11..xlsx", help="Puntajes y clasificación de Saber 11 por institución, 2023-2025. Opcional.")
-    ap.add_argument("--vigencia-metas", type=int, default=2024, help="Vigencia a la que se asignan las metas (PROVISIONAL).")
+    ap.add_argument("--vigencia-metas", type=int, default=2025, help="Vigencia a la que se asignan las metas (confirmada con el equipo: informe financiero 2025).")
     ap.add_argument("--out", type=Path, default=RAIZ / "datos" / "sheet")
     a = ap.parse_args()
 
@@ -322,6 +322,21 @@ def main():
 
     metas_mf = leer_metas(a.mf_raiz, 10, ["proyecto", "actividad", "valor_unitario", "meta", "valor_meta", "ejecutado", "valor_ejecutado", "faltante", "valor_faltante", "adicional"])
     metas_uc = leer_metas(a.uc_raiz, 13, ["proceso", "actividad", "valor_unitario", "meta", "valor_meta", "ejecutado", "valor_ejecutado", "faltante", "valor_faltante", "adicional", "reinversion", "departamento", "comite"])
+
+    # Confirmado con el equipo (informe financiero 2025, "Capítulo II"): estas 3 actividades ya cerraron al
+    # 100%, aunque la hoja "Gobernación" del Excel todavía trae la ejecución parcial de un corte anterior.
+    CUMPLIDAS_100_MF = {
+        ("Escuela Nueva - Posprimaria", "Dotación de baterias evaluativas"),
+        ("Escuela y Café - Seguridad Alimentaria", "Visita de asesoría y acompañamiento"),
+        ("Escuela Virtual", "Visita de asesoría y acompañamiento"),
+    }
+    cerradas = 0
+    for i, r in metas_mf.iterrows():
+        if (r["proyecto"], r["actividad"]) in CUMPLIDAS_100_MF:
+            metas_mf.loc[i, ["ejecutado", "valor_ejecutado", "faltante", "valor_faltante"]] = [r["meta"], r["valor_meta"], 0, 0]
+            cerradas += 1
+    if cerradas != len(CUMPLIDAS_100_MF):
+        raise SystemExit(f"[ERROR] Se esperaban {len(CUMPLIDAS_100_MF)} actividades para cerrar al 100%, se encontraron {cerradas}. ¿Cambió el nombre de alguna?")
 
     # El export de Power BI multiplica por 1e8 algunas cantidades decimales (0,97149831 -> 97149831).
     # Ninguna cantidad real pasa de 50, así que todo valor >= 1e6 es ese artefacto y se repara con certeza.
@@ -534,7 +549,7 @@ def main():
     p(f"  'Encuentro de rectores': {er[er.asistio == 'TRUE']['cantidad'].astype(float).sum():,.0f} asistieron + {er[er.asistio == 'FALSE']['cantidad'].astype(float).sum():,.0f} convocados sin asistir")
     p(f"  tipo_beneficiario MF: {dict(out_mf['tipo_beneficiario'].value_counts())}")
     p(f"  tipo_beneficiario UC: {dict(out_uc['tipo_beneficiario'].value_counts())}")
-    p(f"\n  !! Metas asignadas a la vigencia {a.vigencia_metas} de forma PROVISIONAL (--vigencia-metas). Confirmar.")
+    p(f"\n  Metas asignadas a la vigencia {a.vigencia_metas} (confirmado con el equipo).")
 
     (a.out / "reporte_siembra.txt").write_text("\n".join(log), encoding="utf-8")
     p(f"\nCSV escritos en {a.out}")

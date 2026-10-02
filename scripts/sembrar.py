@@ -288,6 +288,46 @@ def leer_metas(path, n_cols, nombres):
     return df
 
 
+def metas_mf_2024():
+    """Metas 2024 de Modelos Flexibles, del informe financiero 'Capítulo II' que pasó el equipo (no hay Excel
+    fuente para esta vigencia, solo esa captura). "Faltante" viene directo del informe (columna "Pendiente");
+    de ahí se derivan valor_meta/valor_faltante/ejecutado/valor_ejecutado, todos cruzados entre sí y contra los
+    subtotales y el total general del informe ($1.000.010.048) antes de darlos por buenos."""
+    # proyecto, actividad, valor_unitario, meta (cant.), faltante (pendiente)
+    filas = [
+        ("Escuela Nueva - Posprimaria", "Actividad de Acompañamiento a Instituciones Educativas: Sedes Principales y Sedes primera", 850546, 180, 52),
+        ("Escuela Nueva - Posprimaria", "Acompañamiento a Microcentros Rurales", 765493, 50, 13),
+        ("Escuela Nueva - Posprimaria", "Acompañamiento Redes de Maestros de Escuela Nueva", 765493, 26, 3),
+        ("Escuela Nueva - Posprimaria", "Encuentro de Rectores de manera presencial", 288380, 89, 0),
+        ("Escuela Nueva - Posprimaria", "Encuentro presidente de RED", 280000, 30, 0),
+        ("Escuela Nueva - Posprimaria", "Capacitación de inducción a Docentes en Escuela Nueva", 659034, 300, 0),
+        ("Escuela Nueva - Posprimaria", "Dotación material guías de interaprendizaje básica primaria - posprimaria", 442800, 100, 100),
+        ("Educación Media", "Actividad de Acompañamiento a Instituciones Educativas", 850546, 60, 14),
+        ("Educación Media", "Dotación Módulos Educación Media 10° y 11°", 2700000, 20, 20),
+        ("Escuela y Café - Seguridad Alimentaria", "Actividad de Acompañamiento a diferentes sedes educativas", 850546, 50, 0),
+        ("Escuela y Café", "Dotación Nueva Versión de Módulos Escuela y Café, Grados 4° a 11°", 946406, 20, 20),
+        ("Seguridad Alimentaria", "Dotación Módulos Escuela y Seguridad Alimentaria, Grados 4° a 9°", 666809, 20, 20),
+        ("Escuela y Café - Seguridad Alimentaria", "Dotación Libro de Proyectos Supervisados", 54010, 1999, 1999),
+        ("Escuela y Café", "Capacitación de Docentes (inducción fortalecimiento)", 329519, 30, 30),
+        ("Seguridad Alimentaria", "Capacitación de Docentes", 329519, 30, 30),
+        ("Escuela Virtual", "Actividad de Acompañamiento", 850546, 80, 15),
+        ("Escuela Virtual", "Capacitación docentes a I.E. en fase 1", 329519, 10, 0),
+        ("Escuela Virtual", "Capacitación a I.E. a gerentes de telecentros", 329519, 34, 17),
+        ("Escuela Virtual", "Dotación módulos de Escuela Virtual, Primaria, Posprimaria y Media", 971846, 99, 99),
+        ("Escuela Virtual", "Capacitación de docentes para uso del kit de robótica", 329519, 80, 0),
+    ]
+    df = pd.DataFrame(filas, columns=["proyecto", "actividad", "valor_unitario", "meta", "faltante"])
+    df["valor_meta"] = df["valor_unitario"] * df["meta"]
+    df["valor_faltante"] = df["valor_unitario"] * df["faltante"]
+    df["ejecutado"] = df["meta"] - df["faltante"]
+    df["valor_ejecutado"] = df["valor_meta"] - df["valor_faltante"]
+    df["adicional"] = 0
+    total = int(df["valor_meta"].sum())
+    if total != 1000010048:
+        raise SystemExit(f"[ERROR] metas_mf_2024: el total da {total:,}, se esperaban $1.000.010.048. ¿Se corrigió alguna fila a medias?")
+    return df[["proyecto", "actividad", "valor_unitario", "meta", "valor_meta", "ejecutado", "valor_ejecutado", "faltante", "valor_faltante", "adicional"]]
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     docs = RAIZ / "docs"
@@ -297,7 +337,8 @@ def main():
     ap.add_argument("--uc-raiz", type=Path, default=docs / "Informe U Campo.xlsx")
     ap.add_argument("--estado-tecnicos", type=Path, default=docs / "estado técnicos" / "Listado_General_Estudiantes.xlsx", help="Listado General con el estado actualizado de los estudiantes (cohortes 2024 en adelante). Opcional.")
     ap.add_argument("--saber11", type=Path, default=docs / "Saber 11" / "Rural- Urbana Rural- Pruebas Saber 11..xlsx", help="Puntajes y clasificación de Saber 11 por institución, 2023-2025. Opcional.")
-    ap.add_argument("--vigencia-metas", type=int, default=2025, help="Vigencia a la que se asignan las metas (confirmada con el equipo: informe financiero 2025).")
+    ap.add_argument("--vigencia-metas-mf", type=int, default=2025, help="Vigencia de las metas de Modelos Flexibles (confirmada con el equipo: informe financiero 2025).")
+    ap.add_argument("--vigencia-metas-uc", type=int, default=2024, help="Vigencia de las metas de Universidad en el Campo (su ciclo de 'Etapas' no coincide con el de Modelos Flexibles).")
     ap.add_argument("--out", type=Path, default=RAIZ / "datos" / "sheet")
     a = ap.parse_args()
 
@@ -337,6 +378,13 @@ def main():
             cerradas += 1
     if cerradas != len(CUMPLIDAS_100_MF):
         raise SystemExit(f"[ERROR] Se esperaban {len(CUMPLIDAS_100_MF)} actividades para cerrar al 100%, se encontraron {cerradas}. ¿Cambió el nombre de alguna?")
+
+    # Las metas 2024 de Modelos Flexibles no están en ningún Excel: se agregan aparte (ver metas_mf_2024) y
+    # quedan con su propia vigencia, junto a las de vigencia_metas_mf (confirmadas como 2025).
+    metas_mf.insert(0, "vigencia", a.vigencia_metas_mf)
+    metas_mf_24 = metas_mf_2024()
+    metas_mf_24.insert(0, "vigencia", 2024)
+    metas_mf = pd.concat([metas_mf, metas_mf_24], ignore_index=True)
 
     # El export de Power BI multiplica por 1e8 algunas cantidades decimales (0,97149831 -> 97149831).
     # Ninguna cantidad real pasa de 50, así que todo valor >= 1e6 es ese artefacto y se repara con certeza.
@@ -437,8 +485,7 @@ def main():
                     sin_mapa.append((prog, nm, parte))
     metas_mf["proyecto"] = metas_mf["proyecto"].map(limpiar)
     metas_uc["proceso"] = metas_uc["proceso"].map(limpiar)
-    metas_mf.insert(0, "vigencia", a.vigencia_metas)
-    metas_uc.insert(0, "vigencia", a.vigencia_metas)
+    metas_uc.insert(0, "vigencia", a.vigencia_metas_uc)
 
     # ---------- salidas ----------
     def fmt(df, dec_cols):
@@ -549,7 +596,7 @@ def main():
     p(f"  'Encuentro de rectores': {er[er.asistio == 'TRUE']['cantidad'].astype(float).sum():,.0f} asistieron + {er[er.asistio == 'FALSE']['cantidad'].astype(float).sum():,.0f} convocados sin asistir")
     p(f"  tipo_beneficiario MF: {dict(out_mf['tipo_beneficiario'].value_counts())}")
     p(f"  tipo_beneficiario UC: {dict(out_uc['tipo_beneficiario'].value_counts())}")
-    p(f"\n  Metas asignadas a la vigencia {a.vigencia_metas} (confirmado con el equipo).")
+    p(f"\n  Metas: Modelos Flexibles vigencia {a.vigencia_metas_mf} · Universidad en el Campo vigencia {a.vigencia_metas_uc} (confirmado con el equipo).")
 
     (a.out / "reporte_siembra.txt").write_text("\n".join(log), encoding="utf-8")
     p(f"\nCSV escritos en {a.out}")

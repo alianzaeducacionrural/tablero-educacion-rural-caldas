@@ -27,10 +27,10 @@ RAIZ = Path(__file__).resolve().parent.parent
 
 # Cifras de la última verificación (informativas: si cambian los datos, se muestran como "difiere").
 FOTO = {
-    "mf_filas": 3594, "mf_valor": 2995880347,
+    "mf_filas": 3891, "mf_valor": 3265562729,
     "uc_filas": 740, "uc_valor": 2816620848,
-    "consolidado": 5812501195,
-    "depto": 5100432060, "comite": 712069135,
+    "consolidado": 6082183577,
+    "depto": 5188467255, "comite": 893716322,
     "beneficiados": 34279, "estudiantes": 2342,
 }
 
@@ -125,6 +125,18 @@ def leer(path, hoja, renombrar, esperadas=None):
     if faltan:
         raise SystemExit(f"[ERROR] {Path(path).name} / {hoja}: faltan columnas {faltan}. Hay: {list(df.columns)}")
     return df[list(renombrar)].rename(columns=renombrar)
+
+
+def leer_base_rica(path, hoja, convenio):
+    """Como leer(), pero para una 'Base Datos' que mezcla varios convenios (trae además Fecha/Sede/Convenio,
+    que el export de Drive no tiene) y hay que filtrar a uno solo antes de quedarse con el esquema estándar."""
+    renombrar = {"Año": "anio", "Municipio": "municipio", "Institucion": "institucion", "Estado Actividad": "estado", "Proyecto": "proyecto", "Actividad": "actividad", "Cantidad": "cantidad", "Valor": "valor", "Aportante": "aportante"}
+    df = pd.read_excel(path, sheet_name=hoja)
+    faltan = [c for c in [*renombrar, "Convenio"] if c not in df.columns]
+    if faltan:
+        raise SystemExit(f"[ERROR] {Path(path).name} / {hoja}: faltan columnas {faltan}. Hay: {list(df.columns)}")
+    df = df[df["Año"].notna() & (df["Convenio"].map(plegar) == plegar(convenio))]
+    return df[list(renombrar)].rename(columns=renombrar).reset_index(drop=True)
 
 
 def actualizar_estado(est, nombre_est, ruta):
@@ -297,7 +309,9 @@ def main():
         print(linea)
 
     # ---------- lectura ----------
-    mf = leer(a.mf_drive, "Base de datos", {"Año": "anio", "Municipio": "municipio", "Institucion": "institucion", "Estado Actividad": "estado", "Proyecto": "proyecto", "Actividad": "actividad", "Cantidad": "cantidad", "Valor": "valor", "Aportante": "aportante"})
+    # La "Base Datos" del Excel raíz es más completa y más reciente que el export de Drive (trae Fecha/Sede/
+    # Convenio, que de momento no se usan, y mezcla Manizales con Gobernación): se filtra a Gobernación.
+    mf = leer_base_rica(a.mf_raiz, "Base Datos", "Gobernación")
     uc = leer(a.uc_drive, "Base de datos", {"Año": "anio", "Municipio": "municipio", "Institucion": "institucion", "Estado Convenio": "estado", "Proceso": "proceso", "Actividad": "actividad", "Cantidad": "cantidad", "Valor": "valor", "Aportante": "aportante"})
     ben = leer(a.mf_drive, "Beneficiados", {"Año": "anio", "Municipio": "municipio", "Institucion": "institucion", "Sede": "sede", "Beneficiados": "beneficiados"})
     est_todo = pd.read_excel(a.uc_drive, sheet_name="Estudiantes")

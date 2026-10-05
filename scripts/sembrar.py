@@ -198,7 +198,9 @@ def actualizar_estado(est, nombre_est, ruta):
         if plegar(est.at[j, "estado"]) != plegar(nuevo):
             cambios[(est.at[j, "estado"], nuevo)] += 1
             est.at[j, "estado"] = nuevo
-        est.at[j, "documento"] = texto(lst.at[i, "Documento"])
+        # Sin puntos: alguna cédula viene escrita "1.058.526.531" en el Listado, y Sheets la vuelve a convertir
+        # en número al subirla (interpretando los puntos como separador de miles), perdiendo el formato.
+        est.at[j, "documento"] = texto(lst.at[i, "Documento"]).replace(".", "")
         est.at[j, "telefono"] = texto(lst.at[i, "Teléfono"])
         est.at[j, "correo"] = texto(lst.at[i, "Correo"])
         est.at[j, "acudiente"] = limpiar(lst.at[i, "Acudiente"]) if pd.notna(lst.at[i, "Acudiente"]) else ""

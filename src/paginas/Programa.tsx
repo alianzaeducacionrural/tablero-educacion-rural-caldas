@@ -53,12 +53,23 @@ export function Programa({ programa }: { programa: Prog }) {
 
   const t = vistas.todas
   const total = sumar(t, (x) => x.valor)
+  // Beneficiados/estudiantes no tienen "estado", "aportante" ni "actividad" (son de personas, no de actividades):
+  // solo reaccionan a año, municipio e institución, igual que "municipios e instituciones" más abajo.
+  const conInstitucion = (institucion: string, municipio: string) => sel.institucion.length === 0 || sel.institucion.includes(repetidos.has(institucion) ? `${institucion} (${municipio})` : institucion)
   const estudiantesAtendidos = useMemo(
     () =>
       programa === 'mf'
-        ? sumar(datos.beneficiados.filter((b) => pasa(f, b.anio, b.municipio)), (b) => b.beneficiados)
-        : datos.estudiantes.filter((e) => /gobernaci/i.test(e.financiador) && pasa(f, e.anioIngreso, e.municipio)).length,
-    [datos, f, programa],
+        ? sumar(datos.beneficiados.filter((b) => pasa(f, b.anio, b.municipio) && conInstitucion(b.institucion, b.municipio)), (b) => b.beneficiados)
+        : datos.estudiantes.filter((e) => /gobernaci/i.test(e.financiador) && pasa(f, e.anioIngreso, e.municipio) && conInstitucion(e.institucion, e.municipio)).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [datos, f, programa, sel.institucion, repetidos],
+  )
+  // Mismo alcance que estudiantesAtendidos (año, municipio, institución): así la frase de abajo no contradice
+  // la cifra de estudiantes, aunque haya un filtro de Estado/Aportante/Actividad activo.
+  const alcance = useMemo(
+    () => filas.filter((x) => pasa(f, x.anio, x.municipio) && conInstitucion(x.institucion, x.municipio)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filas, f, sel.institucion, repetidos],
   )
 
   // Mapa: valor por municipio (con la cantidad en el tooltip)
@@ -192,7 +203,7 @@ export function Programa({ programa }: { programa: Prog }) {
               />
             </div>
             <p className="text-lg leading-relaxed text-ink2">
-              En <Marca>{num(unicos(t, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(unicos(t.filter((x) => x.tipo === 'Institución'), (x) => `${x.municipio}|${x.institucion}`).size)} instituciones</Marca>.
+              En <Marca>{num(unicos(alcance, (x) => x.municipio).size)} municipios</Marca> y <Marca>{num(unicos(alcance.filter((x) => x.tipo === 'Institución'), (x) => `${x.municipio}|${x.institucion}`).size)} instituciones</Marca>.
               {contextoFiltros && <> Datos de <Marca>{contextoFiltros}</Marca>.</>}
             </p>
           </div>

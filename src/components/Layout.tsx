@@ -9,7 +9,7 @@ import { Aviso, Cargando, SiluetaCaldas } from './Lamina'
 
 const fechaCorta = (iso: string) => {
   const d = new Date(iso)
-  return isNaN(d.getTime()) ? '' : d.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Bogota' })
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('es-CO', { dateStyle: 'medium', timeZone: 'America/Bogota' })
 }
 
 export function Layout() {

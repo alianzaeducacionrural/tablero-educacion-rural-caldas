@@ -181,6 +181,15 @@ export function Estudiantes() {
       </PlacaCabecera>
 
       <ConFiltros panel={<PanelFiltros anios={anioFiltro} tituloAnios="Año de ingreso" grupos={grupos} etiquetas={etiquetas} onLimpiar={limpiar} />} etiquetas={etiquetas} onLimpiar={limpiar}>
+        <div className="grid items-start gap-12 2xl:grid-cols-2">
+          <Seccion titulo="¿De dónde son?" nota="Estudiantes por municipio. Toca uno para filtrar." tabla={tablaMunicipioT}>
+            <MapaCaldas datos={datosMapa} placa={placa} fmt={num} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta="Estudiantes técnicos por municipio" />
+          </Seccion>
+          <Seccion titulo="¿Dónde estudian?" nota="Estudiantes por universidad, divididos entre la Gobernación y otros aliados. Toca una barra para filtrar." tono="lavado" tabla={tablaUniT}>
+            <Grafico etiqueta="Estudiantes por universidad, divididos entre la Gobernación de Caldas y otros aliados" alto={altoBarras(pUni.length)} alClic={alt('universidad')} opcion={opcionUni} />
+          </Seccion>
+        </div>
+
         <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
           <div>
             <Grafico etiqueta="Estudiantes por cohorte y estado" alto={380} alClic={(c) => f.setAnios(alternar(f.anios, Number(c)))} opcion={opcionCohortes} />
@@ -196,15 +205,6 @@ export function Estudiantes() {
             </p>
             <Posiciones items={pEstado.map((p) => ({ nombre: p.nombre, valor: p.valor, color: colorEstadoEstudiante(p.nombre) }))} fmt={num} onClic={alt('estado')} seleccion={sel.estado} />
           </div>
-        </div>
-
-        <div className="grid items-start gap-12 2xl:grid-cols-2">
-          <Seccion titulo="¿De dónde son?" nota="Estudiantes por municipio. Toca uno para filtrar." tabla={tablaMunicipioT}>
-            <MapaCaldas datos={datosMapa} placa={placa} fmt={num} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta="Estudiantes técnicos por municipio" />
-          </Seccion>
-          <Seccion titulo="¿Dónde estudian?" nota="Estudiantes por universidad, divididos entre la Gobernación y otros aliados. Toca una barra para filtrar." tono="lavado" tabla={tablaUniT}>
-            <Grafico etiqueta="Estudiantes por universidad, divididos entre la Gobernación de Caldas y otros aliados" alto={altoBarras(pUni.length)} alClic={alt('universidad')} opcion={opcionUni} />
-          </Seccion>
         </div>
 
         <Seccion titulo="Programas" nota="Estudiantes por programa, divididos entre la Gobernación y otros aliados. Toca una barra para filtrar." tabla={tablaProgT}>

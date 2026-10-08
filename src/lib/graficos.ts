@@ -175,7 +175,7 @@ export function columnas(o: { categorias: string[]; series: SerieCol[]; fmt: (n:
   const c = comun()
   const varias = o.series.length > 1
   const hay = (o.seleccion?.length ?? 0) > 0
-  return {
+  const base = {
     ...c,
     grid: { left: 4, right: 12, top: varias ? 40 : 14, bottom: 4, containLabel: true },
     legend: varias ? { top: 0, left: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 12, itemGap: 18, textStyle: { color: TINTA.texto, fontSize: 13, fontWeight: 600 }, data: o.series.map((s) => s.nombre) } : { show: false },
@@ -213,6 +213,10 @@ export function columnas(o: { categorias: string[]; series: SerieCol[]; fmt: (n:
       })),
     })),
   }
+  // En pantallas angostas la leyenda baja a dos líneas y los valores de barras agrupadas se pisan o se cortan
+  // en el borde: se deja espacio a la leyenda y se quitan esos valores (siguen en la tabla y al tocar la barra).
+  const movil = { grid: { ...base.grid, top: varias ? 66 : 14 }, ...(varias && !o.apilada ? { series: o.series.map(() => ({ label: { show: false } })) } : {}) }
+  return { baseOption: base, media: [{ query: { maxWidth: 520 }, option: movil }] }
 }
 
 /** Barras horizontales: por defecto apiladas (reparto de cada fila entre varias partes); con `agrupadas`, una
@@ -306,7 +310,7 @@ export function dona(o: { partes: { nombre: string; valor: number; color: string
 export function pastel(o: { partes: { nombre: string; valor: number; color: string }[]; fmt: (n: number) => string; seleccion?: string[]; mostrarValor?: boolean }): EChartsCoreOption {
   const c = comun()
   const hay = (o.seleccion?.length ?? 0) > 0
-  return {
+  const base = {
     ...c,
     tooltip: { ...c.tooltip, trigger: 'item', formatter: (p: { name: string; value: number; percent: number }) => `${esc(p.name)}<br/><b>${o.fmt(p.value)}</b> · ${p.percent.toFixed(1).replace('.', ',')} %` },
     series: [
@@ -324,6 +328,9 @@ export function pastel(o: { partes: { nombre: string; valor: number; color: stri
       },
     ],
   }
+  // En pantallas angostas el nombre se truncaba ("Univers…"): el círculo se achica y el nombre se parte en líneas.
+  const movil = { series: [{ radius: ['0%', '44%'], label: { width: 84, overflow: 'break', formatter: (p: { name: string; value: number; percent: number }) => `${p.name}\n${o.mostrarValor ? o.fmt(p.value) : `${p.percent.toFixed(1).replace('.', ',')} %`}` } }] }
+  return { baseOption: base, media: [{ query: { maxWidth: 520 }, option: movil }] }
 }
 
 /* ------------------------------------------------------------------ sunburst (solo en el Resumen) */

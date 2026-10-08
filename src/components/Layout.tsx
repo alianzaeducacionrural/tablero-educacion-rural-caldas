@@ -104,7 +104,7 @@ export function Layout() {
 
       <footer className="mt-10 bg-white" style={{ borderTop: '6px solid var(--main)' }}>
         <div className="mx-auto max-w-[1500px] px-5 py-8">
-          <div className="flex items-center justify-between gap-6">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
             <img src={logoSed} alt="Gobierno de Caldas, Secretaría de Educación" width={1100} height={129} className="h-9 w-auto sm:h-12" />
             <img src={logoComiteNegro} alt="Comité de Cafeteros de Caldas, Federación Nacional de Cafeteros de Colombia" width={700} height={196} className="h-10 w-auto sm:h-14" />
           </div>

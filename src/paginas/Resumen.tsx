@@ -232,7 +232,7 @@ export function Resumen() {
         </Seccion>
 
         <Seccion titulo="Distribución del recurso" nota="Modelos Educativos Flexibles frente a Universidad en el Campo. El detalle por proyecto o proceso está en la tabla." tono="lavado" tabla={tablaFlujoT}>
-          <div className="grid items-center gap-6 sm:grid-cols-2">
+          <div className="grid grid-cols-1 items-center gap-6 sm:grid-cols-2">
             <Grafico etiqueta="Distribución de la inversión entre Modelos Educativos Flexibles y Universidad en el Campo" alto={320} opcion={opcionPrograma} />
             <Posiciones
               items={[
@@ -245,7 +245,7 @@ export function Resumen() {
         </Seccion>
 
         <Seccion titulo="Año por año" nota="Cómo cambió la inversión de un año al siguiente. Toca un año para filtrar." tabla={tablaAnioT}>
-          <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+          <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
             <div className="space-y-5">
               <Grafico etiqueta="Inversión por año y programa" alto={340} alClic={(n) => f.setAnios(alternar(f.anios, Number(n)))} opcion={opcionAnios} />
               <TablaAnios filas={porAnio.map((a) => ({ anio: a.anio, valores: [a.mf, a.uc] }))} series={seriesAnio} fmt={cop} nota="El año más reciente puede estar incompleto si su vigencia sigue en curso." />

@@ -442,7 +442,7 @@ export function Saber11() {
           </div>
         </Seccion>
 
-        <Seccion titulo="Municipios" nota="Puntaje global promedio de cada municipio. Toca uno para filtrar." tono="lavado" acciones={<Segmentado etiqueta="Dividir por" valor={vistaMuni} onChange={setVistaMuni} opciones={[{ id: 'total', texto: 'Total' }, { id: 'anio', texto: 'Por año' }]} />} tabla={tablaMunicipioT}>
+        <Seccion titulo="Municipios" nota="Puntaje global promedio de cada municipio. Toca uno para filtrar." acciones={<Segmentado etiqueta="Dividir por" valor={vistaMuni} onChange={setVistaMuni} opciones={[{ id: 'total', texto: 'Total' }, { id: 'anio', texto: 'Por año' }]} />} tabla={tablaMunicipioT}>
           <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
             {vistaMuni === 'total' ? (
               <RankingBarras items={porMuni} fmtValor={num1} fmtCantidad={num} tituloValor="Puntaje global" tituloCantidad="Instituciones" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} escalaDesdeMinimo />
@@ -477,7 +477,7 @@ export function Saber11() {
           </div>
         </Seccion>
 
-        <Seccion titulo="Clasificación" nota={`Cuántas instituciones quedaron en cada categoría del MEN en ${anioFoco}: A+ y A sobresalen, B es medio, C y D necesitan más apoyo.`} tono="lavado" tabla={tablaClasifMuniT}>
+        <Seccion titulo="Clasificación" nota={`Cuántas instituciones quedaron en cada categoría del MEN en ${anioFoco}: A+ y A sobresalen, B es medio, C y D necesitan más apoyo.`} tabla={tablaClasifMuniT}>
           <div className="grid items-center gap-6 sm:grid-cols-2">
             <Grafico etiqueta={`Instituciones por clasificación, ${anioFoco}`} alto={300} opcion={opcionClasif} />
             <Posiciones items={pClasif.map((p) => ({ nombre: p.nombre, valor: p.valor, color: colorClasificacion(p.nombre) }))} fmt={num} onClic={(n) => setClasificacionSel(alternar(clasificacionSel, n))} seleccion={clasificacionSel} />

@@ -185,7 +185,7 @@ export function Estudiantes() {
           <Seccion titulo="¿De dónde son?" nota="Estudiantes por municipio. Toca uno para filtrar." tabla={tablaMunicipioT}>
             <MapaCaldas datos={datosMapa} placa={placa} fmt={num} seleccion={f.municipios} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} etiqueta="Estudiantes técnicos por municipio" />
           </Seccion>
-          <Seccion titulo="¿Dónde estudian?" nota="Estudiantes por universidad, divididos entre la Gobernación y otros aliados. Toca una barra para filtrar." tono="lavado" tabla={tablaUniT}>
+          <Seccion titulo="¿Dónde estudian?" nota="Estudiantes por universidad, divididos entre la Gobernación y otros aliados. Toca una barra para filtrar." tabla={tablaUniT}>
             <Grafico etiqueta="Estudiantes por universidad, divididos entre la Gobernación de Caldas y otros aliados" alto={altoBarras(pUni.length)} alClic={alt('universidad')} opcion={opcionUni} />
           </Seccion>
         </div>
@@ -211,14 +211,14 @@ export function Estudiantes() {
           <Grafico etiqueta="Estudiantes por programa, divididos entre la Gobernación de Caldas y otros aliados" alto={altoBarras(pProg.length)} alClic={alt('programa')} opcion={opcionProg} />
         </Seccion>
 
-        <Seccion titulo="Género" tono="lavado" tabla={tablaGeneroT}>
+        <Seccion titulo="Género" tabla={tablaGeneroT}>
           <div className="grid items-center gap-6 sm:grid-cols-2">
             <Grafico etiqueta="Estudiantes por género" alto={260} opcion={opcionGenero} />
             <Posiciones items={pGenero.map((g, i) => ({ nombre: g.nombre, valor: g.valor, color: coloresGenero[i % coloresGenero.length] }))} fmt={num} />
           </div>
         </Seccion>
 
-        <Seccion titulo="Graduados por año de grado" nota="Cuántos se graduaron cada año, sin importar en cuál entraron." tono="lavado">
+        <Seccion titulo="Graduados por año de grado" nota="Cuántos se graduaron cada año, sin importar en cuál entraron.">
           <Grafico etiqueta="Graduados por año de grado" alto={340} opcion={opcionGrad} />
         </Seccion>
       </ConFiltros>

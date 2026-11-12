@@ -184,7 +184,7 @@ export function Cobertura() {
           </div>
         </div>
 
-        <Seccion titulo="Año por año" nota="Beneficiados de cada año y su cambio frente al anterior. Toca un año para filtrar." tono="lavado" tabla={tablaAnioT}>
+        <Seccion titulo="Año por año" nota="Beneficiados de cada año y su cambio frente al anterior. Toca un año para filtrar." tabla={tablaAnioT}>
           <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
             <Grafico etiqueta="Estudiantes beneficiados por año" alto={320} alClic={(n) => f.setAnios(alternar(f.anios, Number(n)))} opcion={opcionAnios} />
             <TablaAnios filas={anios.map((a, i) => ({ anio: a, valores: [porAnio[i]] }))} series={[{ nombre: 'Beneficiados', color: placa.main }]} fmt={num} nota="El año más reciente puede estar incompleto si su vigencia sigue en curso." />
@@ -194,16 +194,16 @@ export function Cobertura() {
         <Seccion titulo="Municipios" nota="Beneficiados y sedes atendidas. Toca uno para filtrar." acciones={<Segmentado etiqueta="Dividir por" valor={vistaMuni} onChange={setVistaMuni} opciones={[{ id: 'total', texto: 'Total' }, { id: 'anio', texto: 'Por año' }]} />} tabla={tablaMunicipioT}>
           <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
             {vistaMuni === 'total' ? (
-              <RankingBarras items={porMuni} fmtValor={num} fmtCantidad={(n) => `${num(n)} sedes`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
+              <RankingBarras items={porMuni} fmtValor={num} fmtCantidad={(n) => `${num(n)} ${n === 1 ? "sede" : "sedes"}`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} seleccion={f.municipios} onClic={(n) => f.setMunicipios(alternar(f.municipios, n))} limite={porMuni.length} />
             ) : (
               <Grafico etiqueta="Beneficiados por municipio, divididos por año" alto={altoBarras(porMunicipioAnio.length, 1.7)} alClic={(n) => f.setMunicipios(alternar(f.municipios, n))} opcion={opcionMunicipiosAnio} sinRecuadro />
             )}
           </div>
         </Seccion>
 
-        <Seccion titulo="Instituciones" nota="Beneficiados y sedes de cada institución." tono="lavado" tabla={tablaInstitucionT}>
+        <Seccion titulo="Instituciones" nota="Beneficiados y sedes de cada institución." tabla={tablaInstitucionT}>
           <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
-            <RankingBarras items={porInst} fmtValor={num} fmtCantidad={(n) => `${num(n)} sedes`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} limite={porInst.length} />
+            <RankingBarras items={porInst} fmtValor={num} fmtCantidad={(n) => `${num(n)} ${n === 1 ? "sede" : "sedes"}`} tituloValor="Beneficiados" tituloCantidad="Sedes" colorBase={placa.main} limite={porInst.length} />
           </div>
         </Seccion>
 

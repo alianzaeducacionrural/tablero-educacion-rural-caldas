@@ -229,7 +229,7 @@ export function apiladasH(o: { filas: { nombre: string; partes: { nombre: string
   // Con los valores de cada parte a la vista, el total al final ya no cabe: se ve en la leyenda y al pasar el mouse.
   const mostrarTotal = o.mostrarTotal && !o.mostrarValores
   const derecha = o.agrupadas && o.mostrarValores ? (o.derecha ?? 100) : mostrarTotal ? (o.derecha ?? 116) : 12
-  return {
+  const base = {
     ...c,
     grid: { left: 4, right: derecha, top: 34, bottom: 4, containLabel: true },
     legend: { top: 0, left: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 12, itemGap: 18, textStyle: { color: TINTA.texto, fontSize: 13, fontWeight: 600 } },
@@ -270,6 +270,9 @@ export function apiladasH(o: { filas: { nombre: string; partes: { nombre: string
       }
     }),
   }
+  // Misma razón que en `columnas`: en pantallas angostas la leyenda baja a dos líneas y las cotas del eje se pisan.
+  const movil = { grid: { ...base.grid, top: 66 }, xAxis: { axisLabel: { hideOverlap: true } } }
+  return { baseOption: base, media: [{ query: { maxWidth: 520 }, option: movil }] }
 }
 
 /* ------------------------------------------------------------------ anillo y pastel */

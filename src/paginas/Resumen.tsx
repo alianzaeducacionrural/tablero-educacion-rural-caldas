@@ -231,7 +231,7 @@ export function Resumen() {
           )}
         </Seccion>
 
-        <Seccion titulo="Distribución del recurso" nota="Modelos Educativos Flexibles frente a Universidad en el Campo. El detalle por proyecto o proceso está en la tabla." tono="lavado" tabla={tablaFlujoT}>
+        <Seccion titulo="Distribución del recurso" nota="Modelos Educativos Flexibles frente a Universidad en el Campo. El detalle por proyecto o proceso está en la tabla." tabla={tablaFlujoT}>
           <div className="grid grid-cols-1 items-center gap-6 sm:grid-cols-2">
             <Grafico etiqueta="Distribución de la inversión entre Modelos Educativos Flexibles y Universidad en el Campo" alto={320} opcion={opcionPrograma} />
             <Posiciones

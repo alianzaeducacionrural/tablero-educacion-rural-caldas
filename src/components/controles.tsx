@@ -15,7 +15,7 @@ export function Segmentado<T extends string>({ opciones, valor, onChange, etique
             role="radio"
             aria-checked={on}
             onClick={() => onChange(o.id)}
-            className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${on ? (sobreCampo ? 'bg-white text-ink' : 'bg-main text-on shadow-sm') : sobreCampo ? 'text-on/85 hover:text-on' : 'text-ink2 hover:text-ink'}`}
+            className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${on ? (sobreCampo ? 'bg-white text-ink' : 'bg-main text-on shadow-sm') : sobreCampo ? 'text-on hover:bg-white/15' : 'text-ink2 hover:text-ink'}`}
           >
             {o.texto}
           </button>

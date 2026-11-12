@@ -79,12 +79,13 @@ export function Contenido({ children }: { children: ReactNode }) {
   return <div className="mx-auto max-w-[1400px] space-y-14 px-5 py-9 sm:space-y-16 sm:py-12">{children}</div>
 }
 
-export function Seccion({ titulo, nota, tabla, acciones, tono = 'abierto', children, className = '' }: { titulo: string; nota?: ReactNode; tabla?: TablaDatos; acciones?: ReactNode; tono?: 'abierto' | 'lavado'; children: ReactNode; className?: string }) {
+export function Seccion({ titulo, nota, tabla, acciones, children, className = '' }: { titulo: string; nota?: ReactNode; tabla?: TablaDatos; acciones?: ReactNode; children: ReactNode; className?: string }) {
   const [vista, setVista] = useState<'visual' | 'tabla'>('visual')
   return (
-    <section className={`${tono === 'lavado' ? 'rounded-[28px] bg-wash/70 p-5 sm:p-8' : ''} ${className}`}>
+    <section className={`overflow-hidden rounded-[28px] bg-wash/70 p-5 ring-1 ring-black/5 shadow-[0_10px_30px_-14px_rgba(29,26,74,0.25)] sm:p-8 ${className}`}>
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
+          <span className="mb-3 block h-1.5 w-12 rounded-full bg-main" aria-hidden="true" />
           <h2 className="display text-3xl sm:text-4xl" style={{ color: 'var(--ink)' }}>
             {titulo}
           </h2>

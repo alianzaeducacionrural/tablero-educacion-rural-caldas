@@ -224,7 +224,7 @@ export function Programa({ programa }: { programa: Prog }) {
           </div>
         </Seccion>
 
-        <Seccion titulo="Instituciones" tono="lavado" tabla={tablaInstitucionT}>
+        <Seccion titulo="Instituciones" tabla={tablaInstitucionT}>
           <div className="max-h-[480px] overflow-y-auto rounded-3xl bg-white p-5 ring-1 ring-line">
             <RankingBarras items={dobles.institucion} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.institucion} onClic={alt('institucion')} limite={dobles.institucion.length} />
           </div>
@@ -256,7 +256,7 @@ export function Programa({ programa }: { programa: Prog }) {
           </Seccion>
         </div>
 
-        <Seccion titulo="Año por año" nota="Valor y actividades, año contra año, por aportante. Toca un año para filtrar." tono="lavado" tabla={tablaAnioT}>
+        <Seccion titulo="Año por año" nota="Valor y actividades, año contra año, por aportante. Toca un año para filtrar." tabla={tablaAnioT}>
           <div className="space-y-8">
             <div className="grid items-start gap-8 xl:grid-cols-2">
               <div>

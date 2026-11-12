@@ -144,7 +144,7 @@ export function Cumplimiento() {
               </div>
             </div>
 
-            <Seccion titulo={`Avance por ${cfg.grupo.toLowerCase()}`} nota="Valor ejecutado frente al valor de la meta." tono="lavado">
+            <Seccion titulo={`Avance por ${cfg.grupo.toLowerCase()}`} nota="Valor ejecutado frente al valor de la meta.">
               <div className="grid gap-x-12 gap-y-7 lg:grid-cols-2">
                 {grupos.map(([g, filas], i) => (
                   <Progreso key={g} etiqueta={g} valor={sumar(filas, (m) => m.valorEjecutado)} meta={sumar(filas, (m) => m.valorMeta)} fmt={cop} color={placa.apoyo[i % placa.apoyo.length]} />
@@ -177,7 +177,7 @@ export function Cumplimiento() {
               <Seccion
                 titulo="Cofinanciación"
                 nota="Cuánto aportan el Departamento de Caldas y el Comité de Cafeteros a cada proceso."
-                tono="lavado"
+               
                 tabla={tablaCofinT}
               >
                 <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">

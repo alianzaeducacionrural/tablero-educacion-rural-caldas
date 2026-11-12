@@ -42,7 +42,7 @@ export function Layout() {
               <span className="display block text-2xl" style={{ color: 'var(--ink)' }}>
                 Educación rural en Caldas
               </span>
-              {datos && corte && <span className="cota block text-xs text-ink2">Datos al {corte}</span>}
+              {datos && corte && <span className="cota mt-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-bold" style={{ background: 'var(--soft)', color: 'var(--ink)' }}>Datos al {corte}</span>}
             </span>
           </NavLink>
           <button type="button" onClick={() => void refrescar()} disabled={actualizando} className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-accentink ring-1 ring-line hover:bg-wash disabled:opacity-60">

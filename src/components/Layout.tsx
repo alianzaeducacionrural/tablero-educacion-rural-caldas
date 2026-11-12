@@ -109,7 +109,7 @@ export function Layout() {
             <img src={logoComiteNegro} alt="Comité de Cafeteros de Caldas, Federación Nacional de Cafeteros de Colombia" width={700} height={196} className="h-10 w-auto sm:h-14" />
           </div>
           <div className="mt-6 border-t border-line pt-5 text-sm text-ink2">
-            <span>Educación rural en Caldas. Valores en pesos colombianos. Contornos municipales: DANE, vía geoBoundaries (CC BY 4.0). Cada visual tiene su tabla y se descarga en CSV.</span>
+            <span>Educación rural en Caldas. Valores en pesos colombianos. Cada visual tiene su tabla y se descarga en CSV.</span>
           </div>
         </div>
       </footer>

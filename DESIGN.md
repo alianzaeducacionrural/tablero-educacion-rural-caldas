@@ -31,6 +31,8 @@ Auto-alojadas con `@fontsource-variable/*`.
 ## Composición
 Sin tarjetas KPI. Cifras grandes sueltas sobre el fondo, frases con las cifras resaltadas como marcador (`Marca`), secciones abiertas o sobre un lavado del color de la lámina (`tono="lavado"`, radio 28 px). Sin anidar contenedores.
 
+**Actualización (2026-11-12):** por pedido del usuario, cada sección con gráfico (`Seccion`) va siempre dentro de un panel redondeado con el lavado del color de la lámina, borde fino, sombra suave y una barrita de color sobre el título. Esto sustituye el criterio anterior de secciones abiertas.
+
 ## Mezcla de visuales
 Predominan las **barras, los anillos y el pastel, las tablas, las barras de avance y las comparaciones entre años**, sobre el mapa real de Caldas. No se usan burbujas ni treemap (el usuario los descartó); el sunburst queda solo en el Resumen (aportante → programa → proyecto).
 - `RankingBarras` (`components/Ranking.tsx`): ranking en HTML, una fila por elemento, con la barra, el **valor completo** y la **cantidad** a la vez. Cada fila filtra.

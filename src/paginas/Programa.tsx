@@ -231,14 +231,14 @@ export function Programa({ programa }: { programa: Prog }) {
         </Seccion>
 
         <Seccion titulo={`${cfg.grupos} y actividades`} nota="Cada barra es el valor invertido; a la derecha, el valor completo y la cantidad de actividades. Toca una para filtrar." tabla={tablaActividadT}>
-          <div className="space-y-10">
-            <div>
+          <div className="space-y-6">
+            <div className="rounded-3xl bg-white p-5 ring-1 ring-line">
               <h3 className="display mb-3 text-2xl" style={{ color: 'var(--ink)' }}>
                 Por {cfg.grupo.toLowerCase()}
               </h3>
               <RankingBarras items={dobles.grupo.map((g) => ({ ...g, color: coloresGrupo[g.nombre] }))} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.grupo} onClic={alt('grupo')} />
             </div>
-            <div>
+            <div className="rounded-3xl bg-white p-5 ring-1 ring-line">
               <h3 className="display mb-3 text-2xl" style={{ color: 'var(--ink)' }}>
                 Por actividad
               </h3>
@@ -249,7 +249,9 @@ export function Programa({ programa }: { programa: Prog }) {
 
         <div className="grid items-start gap-12 2xl:grid-cols-2">
           <Seccion titulo="Estado de la actividad" nota="Lo que está dentro del convenio frente a lo que se hizo además." tabla={tablaEstadoT}>
-            <RankingBarras items={dobles.estado.map((e) => ({ ...e, color: colorEstadoActividad(e.nombre, programa) }))} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.estado} onClic={alt('estado')} />
+            <div className="rounded-3xl bg-white p-5 ring-1 ring-line">
+              <RankingBarras items={dobles.estado.map((e) => ({ ...e, color: colorEstadoActividad(e.nombre, programa) }))} fmtValor={cop} fmtCantidad={cant} tituloCantidad="Actividades" colorBase={placa.main} seleccion={sel.estado} onClic={alt('estado')} />
+            </div>
           </Seccion>
           <Seccion titulo="Quién aportó" nota="Distribución del valor entre aportantes." tabla={tablaAportanteT}>
             <Grafico etiqueta="Distribución del valor por aportante" alto={300} alClic={alt('aportante')} opcion={opcionAportante} />

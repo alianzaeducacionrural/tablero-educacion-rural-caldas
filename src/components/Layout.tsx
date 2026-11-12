@@ -7,15 +7,15 @@ import logoComiteNegro from '../assets/logos/comite-negro.webp'
 import { Icono } from './Icono'
 import { Aviso, Cargando, SiluetaCaldas } from './Lamina'
 
-const fechaCorta = (iso: string) => {
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('es-CO', { dateStyle: 'medium', timeZone: 'America/Bogota' })
-}
+/** Fecha de corte fija por pestaña (no depende de la última carga); las no listadas usan CORTE_PREDETERMINADO. */
+const CORTE_PREDETERMINADO = '31/08/2026'
+const CORTE_FIJO: Record<string, string> = { '/': '31/10/2026', '/cumplimiento': '', '/modelos-flexibles': '31/10/2026', '/cobertura': '31/10/2026', '/saber-11': '31/10/2026' }
 
 export function Layout() {
   const { estado, datos, error, actualizando, refrescar } = useDatos()
   const { pathname } = useLocation()
   const placa = placaDeRuta(pathname)
+  const corte = CORTE_FIJO[placa.ruta] ?? CORTE_PREDETERMINADO
 
   // Cada pestaña es una lámina con su propia familia de color: se aplica a toda la página, incluido el fondo.
   useEffect(() => {
@@ -42,7 +42,7 @@ export function Layout() {
               <span className="display block text-2xl" style={{ color: 'var(--ink)' }}>
                 Educación rural en Caldas
               </span>
-              {datos && <span className="cota block text-xs text-ink2">Datos al {fechaCorta(datos.generado)}</span>}
+              {datos && corte && <span className="cota block text-xs text-ink2">Datos al {corte}</span>}
             </span>
           </NavLink>
           <button type="button" onClick={() => void refrescar()} disabled={actualizando} className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-accentink ring-1 ring-line hover:bg-wash disabled:opacity-60">

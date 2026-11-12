@@ -392,6 +392,7 @@ def main():
     # Ninguna cantidad real pasa de 50, así que todo valor >= 1e6 es ese artefacto y se repara con certeza.
     reparadas = []
     for nombre, df in (("Modelos Flexibles", mf), ("Universidad en el Campo", uc)):
+        df["cantidad"] = df["cantidad"].astype(float)
         malas = df["cantidad"] >= 1e6
         if malas.any():
             reparadas.append((nombre, int(malas.sum()), [round(float(x), 8) for x in (df.loc[malas, "cantidad"] / 1e8)][:3]))

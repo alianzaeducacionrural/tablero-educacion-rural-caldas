@@ -16,11 +16,14 @@ const placa = PLACAS.resumen
 export function Resumen() {
   const { datos, f } = useTablero()
   const [institucionSel, setInstitucionSel] = useState<string[]>([])
+  // El estado arranca en "Convenio" (como en las láminas de programa); beneficiados y estudiantes no tienen estado.
+  const [estadoSel, setEstadoSel] = useState<string[]>(['Convenio'])
   const conInst = (v: string) => institucionSel.length === 0 || institucionSel.includes(v)
+  const conEst = (v: string) => estadoSel.length === 0 || estadoSel.includes(v)
 
-  const base = useMemo(() => datos.base.filter((x) => pasa(f, x.anio, x.municipio) && conInst(x.institucion)), [datos, f, institucionSel])
-  const baseMunicipios = useMemo(() => datos.base.filter((x) => pasa({ anios: f.anios, municipios: [] }, x.anio, x.municipio) && conInst(x.institucion)), [datos, f.anios, institucionSel])
-  const baseAnios = useMemo(() => datos.base.filter((x) => pasa({ anios: [], municipios: f.municipios }, x.anio, x.municipio) && conInst(x.institucion)), [datos, f.municipios, institucionSel])
+  const base = useMemo(() => datos.base.filter((x) => pasa(f, x.anio, x.municipio) && conInst(x.institucion) && conEst(x.estado)), [datos, f, institucionSel, estadoSel])
+  const baseMunicipios = useMemo(() => datos.base.filter((x) => pasa({ anios: f.anios, municipios: [] }, x.anio, x.municipio) && conInst(x.institucion) && conEst(x.estado)), [datos, f.anios, institucionSel, estadoSel])
+  const baseAnios = useMemo(() => datos.base.filter((x) => pasa({ anios: [], municipios: f.municipios }, x.anio, x.municipio) && conInst(x.institucion) && conEst(x.estado)), [datos, f.municipios, institucionSel, estadoSel])
   const beneficiados = useMemo(() => datos.beneficiados.filter((b) => pasa(f, b.anio, b.municipio) && conInst(b.institucion)), [datos, f, institucionSel])
   // Un estudiante pertenece al año en que ingresó (su cohorte): así el filtro de año también lo mueve.
   const estudiantes = useMemo(() => datos.estudiantes.filter((e) => /gobernaci/i.test(e.financiador) && pasa(f, e.anioIngreso, e.municipio) && conInst(e.institucion)), [datos, f, institucionSel])
@@ -49,7 +52,7 @@ export function Resumen() {
 
   // Para "por año": mismo criterio que "por municipio" (ignora el filtro que el propio gráfico representa), pero
   // ignorando también el filtro de año, porque aquí el año es lo que se quiere comparar.
-  const baseMunicipiosAnio = useMemo(() => datos.base.filter((x) => conInst(x.institucion)), [datos, institucionSel]) // eslint-disable-line react-hooks/exhaustive-deps
+  const baseMunicipiosAnio = useMemo(() => datos.base.filter((x) => conInst(x.institucion) && conEst(x.estado)), [datos, institucionSel, estadoSel]) // eslint-disable-line react-hooks/exhaustive-deps
   const porMunicipioAnio = useMemo(() => {
     const m = new Map<string, Map<number, number>>()
     baseMunicipiosAnio.forEach((x) => {
@@ -134,8 +137,10 @@ export function Resumen() {
 
   const municipiosDisp = useMemo(() => [...new Set([...datos.base.map((x) => x.municipio), ...datos.beneficiados.map((b) => b.municipio)])].sort(alfa), [datos])
   const institucionesDisp = useMemo(() => [...new Set([...datos.base.map((x) => x.institucion), ...datos.beneficiados.map((b) => b.institucion)])].sort(alfa), [datos])
+  const estadosDisp = useMemo(() => [...new Set(datos.base.map((x) => x.estado))].sort(alfa), [datos])
   const grupos: GrupoFiltro[] = [
     { clave: 'municipio', titulo: 'Municipio', opciones: municipiosDisp, valor: f.municipios, onChange: f.setMunicipios, abierto: true },
+    { clave: 'estado', titulo: 'Estado', opciones: estadosDisp, valor: estadoSel, onChange: setEstadoSel },
     { clave: 'institucion', titulo: 'Institución Educativa', opciones: institucionesDisp, valor: institucionSel, onChange: setInstitucionSel },
   ]
   const anioFiltro = { anios, valor: f.anios, onChange: f.setAnios }
@@ -143,8 +148,9 @@ export function Resumen() {
   const limpiar = () => {
     f.limpiar()
     setInstitucionSel([])
+    setEstadoSel([])
   }
-  const contextoFiltros = fraseFiltros(fraseAnios(f.anios, anios), fraseValores(f.municipios, 'municipios'), fraseValores(institucionSel, 'instituciones'))
+  const contextoFiltros = fraseFiltros(fraseAnios(f.anios, anios), fraseValores(f.municipios, 'municipios'), fraseValores(institucionSel, 'instituciones'), fraseValores(estadoSel, 'estados'))
 
   const tablaFlujoT = { archivo: 'distribucion-del-recurso', columnas: [{ clave: 'programa', titulo: 'Programa' }, { clave: 'grupo', titulo: 'Proyecto / proceso' }, { clave: 'valor', titulo: 'Valor', tipo: 'moneda' as const }], filas: tablaFlujo }
   const tablaMunicipioT =

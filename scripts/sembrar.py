@@ -31,7 +31,7 @@ FOTO = {
     "uc_filas": 816, "uc_valor": 3079415890,
     "consolidado": 6082183577,
     "depto": 5188467255, "comite": 893716322,
-    "beneficiados": 60342, "estudiantes": 2741,
+    "beneficiados": 37359, "estudiantes": 2741,
 }
 
 CONVOCADO = re.compile(r"\s*-\s*convocado\s*-\s*no\s+asisti[oó]\s*$", re.I)
@@ -403,6 +403,12 @@ def main():
     mf = leer_base_rica(a.mf_raiz, "Base Datos", "Gobernación")
     uc = leer_base_rica(a.uc_raiz, "Base Datos", "Gobernación", estado="Estado Convenio", grupo="Proceso")
     ben = leer(a.mf_raiz, "Beneficiados", {"Año": "anio", "Municipio": "municipio", "Institucion": "institucion", "Sede": "sede", "Beneficiados": "beneficiados"})
+    # Cada sede aparece una sola vez por año: el Excel trae filas repetidas (a veces con un valor distinto; gana el más repetido).
+    ben["_k"] = list(zip(ben["anio"], ben["municipio"].map(plegar), ben["institucion"].map(plegar), ben["sede"].map(plegar)))
+    n_ben_crudo = len(ben)
+    ben["beneficiados"] = ben.groupby("_k")["beneficiados"].transform(lambda x: x.mode().iloc[0])
+    ben = ben.drop_duplicates("_k").drop(columns="_k").reset_index(drop=True)
+    print(f"[beneficiados] {n_ben_crudo - len(ben)} filas repetidas quitadas ({n_ben_crudo} -> {len(ben)})")
     # Técnicos profesionales: hoja 1 ("Activos Técnico 2020-2024") de la base de activos; solo esa hoja.
     est_todo = pd.read_excel(a.tecnicos, sheet_name=0)
     est_todo.columns = [limpiar(c) for c in est_todo.columns]

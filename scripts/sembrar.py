@@ -28,10 +28,10 @@ RAIZ = Path(__file__).resolve().parent.parent
 # Cifras de la última verificación (informativas: si cambian los datos, se muestran como "difiere").
 FOTO = {
     "mf_filas": 3891, "mf_valor": 3265562729,
-    "uc_filas": 740, "uc_valor": 2816620848,
+    "uc_filas": 816, "uc_valor": 3079415890,
     "consolidado": 6082183577,
     "depto": 5188467255, "comite": 893716322,
-    "beneficiados": 34279, "estudiantes": 2741,
+    "beneficiados": 60342, "estudiantes": 2741,
 }
 
 CONVOCADO = re.compile(r"\s*-\s*convocado\s*-\s*no\s+asisti[oó]\s*$", re.I)
@@ -127,6 +127,15 @@ def leer(path, hoja, renombrar, esperadas=None):
     return df[list(renombrar)].rename(columns=renombrar)
 
 
+# Nombres de 2026 que no existen tal cual en la base: "Proyectos Pedagógicos Productivos" agrupa Escuela y Café y
+# Seguridad Alimentaria; las pruebas Saber TyT viven en la base bajo "Estrategia de permanencia".
+MAPA_2026 = {
+    "Proyectos Pedagógicos Productivos": ["Escuela y Café", "Seguridad Alimentaria"],
+    "Estrategias de permanencia": ["Estrategia de permanencia"],
+    "Pruebas Saber T y T": ["Estrategia de permanencia"],
+}
+
+
 def leer_df(df, path, renombrar):
     faltan = [c for c in renombrar if c not in df.columns]
     if faltan:
@@ -134,10 +143,10 @@ def leer_df(df, path, renombrar):
     return df[list(renombrar)].rename(columns=renombrar)
 
 
-def leer_base_rica(path, hoja, convenio):
+def leer_base_rica(path, hoja, convenio, estado="Estado Actividad", grupo="Proyecto"):
     """Como leer(), pero para una 'Base Datos' que mezcla varios convenios (trae además Fecha/Sede/Convenio,
     que el export de Drive no tiene) y hay que filtrar a uno solo antes de quedarse con el esquema estándar."""
-    renombrar = {"Año": "anio", "Municipio": "municipio", "Institucion": "institucion", "Estado Actividad": "estado", "Proyecto": "proyecto", "Actividad": "actividad", "Cantidad": "cantidad", "Valor": "valor", "Aportante": "aportante"}
+    renombrar = {"Año": "anio", "Municipio": "municipio", "Institucion": "institucion", estado: "estado", grupo: "proyecto" if grupo == "Proyecto" else "proceso", "Actividad": "actividad", "Cantidad": "cantidad", "Valor": "valor", "Aportante": "aportante"}
     df = pd.read_excel(path, sheet_name=hoja)
     faltan = [c for c in [*renombrar, "Convenio"] if c not in df.columns]
     if faltan:
@@ -297,6 +306,34 @@ def leer_metas(path, n_cols, nombres):
     return df
 
 
+def leer_metas_2026(path):
+    """Metas y avance 2026 de "Convenios y metas.xlsx" (hojas "Modelos 2026" y "U Campo 2026"), ya en totales
+    (columnas TOTAL EJECUTADO y PENDIENTE; no se suman los informes 1, 2 y 3). Verifica que las filas sumen
+    el total del convenio ($1.000.000.000) y el total ejecutado de la propia hoja."""
+    salida = {}
+    for hoja, grupo, extra in (("Modelos 2026", "proyecto", []), ("U Campo 2026", "proceso", ["reinversion", "departamento", "comite"])):
+        d = pd.read_excel(path, sheet_name=hoja, header=None, skiprows=2)
+        total = d.iloc[-1]
+        d = d[d[1].notna()].reset_index(drop=True)
+        n = lambda i: pd.to_numeric(d[i], errors="coerce")
+        meta, faltante = n(2), n(17)
+        faltante = faltante.fillna(meta - n(14)).clip(lower=0)  # "Acompañamiento integral" viene sin pendiente
+        df = pd.DataFrame({
+            "vigencia": 2026, grupo: d[0].map(limpiar), "actividad": d[1].map(limpiar),
+            "valor_unitario": n(3), "meta": meta, "valor_meta": n(4),
+            "ejecutado": n(14), "valor_ejecutado": n(15).fillna(0),
+            "faltante": faltante, "valor_faltante": n(18).fillna(n(4) - n(15).fillna(0)), "adicional": 0,
+        })
+        if extra:
+            df["reinversion"] = 0
+            df["departamento"] = n(5)
+            df["comite"] = n(6).fillna(0)
+        if round(df["valor_meta"].sum()) != 1_000_000_000 or round(df["valor_ejecutado"].sum()) != round(float(total[15])):
+            raise SystemExit(f"[ERROR] {hoja}: las filas no suman el total del convenio ni el total ejecutado de la hoja")
+        salida[hoja] = df
+    return salida["Modelos 2026"], salida["U Campo 2026"]
+
+
 def metas_mf_2024():
     """Metas 2024 de Modelos Flexibles, del informe financiero 'Capítulo II' que pasó el equipo (no hay Excel
     fuente para esta vigencia, solo esa captura). "Faltante" viene directo del informe (columna "Pendiente");
@@ -347,6 +384,7 @@ def main():
     ap.add_argument("--tecnicos", type=Path, default=docs / "Activos Técnicos-Tecnólogos 2020-2024 - Formulado.xlsx", help="Base de técnicos profesionales (se usa solo la hoja 1, 'Activos Técnico 2020-2024').")
     ap.add_argument("--estado-tecnicos", type=Path, default=docs / "estado técnicos" / "Listado_General_Estudiantes.xlsx", help="Listado General con el estado actualizado de los estudiantes (cohortes 2024 en adelante). Opcional.")
     ap.add_argument("--saber11", type=Path, default=docs / "Saber 11" / "Rural- Urbana Rural- Pruebas Saber 11..xlsx", help="Puntajes y clasificación de Saber 11 por institución, 2023-2025. Opcional.")
+    ap.add_argument("--metas-2026", type=Path, default=docs / "Convenios y metas.xlsx", help="Metas y avance 2026 del convenio, en totales.")
     ap.add_argument("--vigencia-metas-mf", type=int, default=2025, help="Vigencia de las metas de Modelos Flexibles (confirmada con el equipo: informe financiero 2025).")
     ap.add_argument("--vigencia-metas-uc", type=int, default=2024, help="Vigencia de las metas de Universidad en el Campo (su ciclo de 'Etapas' no coincide con el de Modelos Flexibles).")
     ap.add_argument("--out", type=Path, default=RAIZ / "datos" / "sheet")
@@ -363,8 +401,8 @@ def main():
     # La "Base Datos" del Excel raíz es más completa y más reciente que el export de Drive (trae Fecha/Sede/
     # Convenio, que de momento no se usan, y mezcla Manizales con Gobernación): se filtra a Gobernación.
     mf = leer_base_rica(a.mf_raiz, "Base Datos", "Gobernación")
-    uc = leer(a.uc_drive, "Base de datos", {"Año": "anio", "Municipio": "municipio", "Institucion": "institucion", "Estado Convenio": "estado", "Proceso": "proceso", "Actividad": "actividad", "Cantidad": "cantidad", "Valor": "valor", "Aportante": "aportante"})
-    ben = leer(a.mf_drive, "Beneficiados", {"Año": "anio", "Municipio": "municipio", "Institucion": "institucion", "Sede": "sede", "Beneficiados": "beneficiados"})
+    uc = leer_base_rica(a.uc_raiz, "Base Datos", "Gobernación", estado="Estado Convenio", grupo="Proceso")
+    ben = leer(a.mf_raiz, "Beneficiados", {"Año": "anio", "Municipio": "municipio", "Institucion": "institucion", "Sede": "sede", "Beneficiados": "beneficiados"})
     # Técnicos profesionales: hoja 1 ("Activos Técnico 2020-2024") de la base de activos; solo esa hoja.
     est_todo = pd.read_excel(a.tecnicos, sheet_name=0)
     est_todo.columns = [limpiar(c) for c in est_todo.columns]
@@ -408,6 +446,8 @@ def main():
     metas_mf_24 = metas_mf_2024()
     metas_mf_24.insert(0, "vigencia", 2024)
     metas_mf = pd.concat([metas_mf, metas_mf_24], ignore_index=True)
+    metas_mf_26, metas_uc_26 = leer_metas_2026(a.metas_2026)
+    metas_mf = pd.concat([metas_mf, metas_mf_26], ignore_index=True)
 
     # El export de Power BI multiplica por 1e8 algunas cantidades decimales (0,97149831 -> 97149831).
     # Ninguna cantidad real pasa de 50, así que todo valor >= 1e6 es ese artefacto y se repara con certeza.
@@ -502,7 +542,7 @@ def main():
     sin_mapa = []
     for prog, nombres_meta, base in (("Modelos Flexibles", metas_mf["proyecto"].unique(), base_mf), ("Universidad en el Campo", metas_uc["proceso"].unique(), base_uc)):
         for nm in nombres_meta:
-            for parte in [limpiar(x) for x in str(nm).split(" - ")]:
+            for parte in [limpiar(x) for x in str(nm).split(" - ")] if nm not in MAPA_2026 else MAPA_2026[nm]:
                 if plegar(parte) in base:
                     mapa.append({"programa": prog, "nombre_meta": limpiar(nm), "nombre_base": base[plegar(parte)]})
                 else:
@@ -510,6 +550,7 @@ def main():
     metas_mf["proyecto"] = metas_mf["proyecto"].map(limpiar)
     metas_uc["proceso"] = metas_uc["proceso"].map(limpiar)
     metas_uc.insert(0, "vigencia", a.vigencia_metas_uc)
+    metas_uc = pd.concat([metas_uc, metas_uc_26], ignore_index=True)
 
     # ---------- salidas ----------
     def fmt(df, dec_cols):

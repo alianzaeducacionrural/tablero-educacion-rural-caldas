@@ -52,7 +52,7 @@ Barra lateral fija a la izquierda en escritorio, con secciones plegables (Año, 
 Arriba, una línea pequeña: «Dashboard creado por el Comité de Cafeteros de Caldas - Área de Educación». Los logos van solo al final de la página, como cierre: escudo Gobierno de Caldas · Secretaría de Educación a la izquierda y Comité de Cafeteros de Caldas a la derecha, sobre blanco. El Comité va **solo en negro** (o blanco si algún día va sobre un color oscuro); el vinotinto no se usa. La Gobernación va siempre sobre blanco (su texto es gris). Nunca se recolorean ni se deforman.
 
 ## Controles
-Píldoras: chips de año, casillas de lista con búsqueda, interruptor segmentado (solo en Cumplimiento). Estado activo = campo de la lámina. Foco visible de 3 px en tinta. Iconos dibujados con un solo trazo (`Icono.tsx`), sin glifos ni emoji. La navegación entre láminas son píldoras con el color de cada una; su contenedor lleva aire arriba y abajo para que el borde no se recorte al desplazarse.
+Píldoras: chips de año, casillas de lista con búsqueda, interruptor segmentado (era de Cumplimiento, hoy en blanco a la espera de los datos 2026). Estado activo = campo de la lámina. Foco visible de 3 px en tinta. Iconos dibujados con un solo trazo (`Icono.tsx`), sin glifos ni emoji. La navegación entre láminas son píldoras con el color de cada una; su contenedor lleva aire arriba y abajo para que el borde no se recorte al desplazarse.
 
 ## Movimiento
 Un solo gesto de entrada por lámina (fundido del fondo y del titular, `cubic-bezier(.19,1,.22,1)`), más la animación de los puntos del cafetal y el re-teñido del mapa al filtrar. `prefers-reduced-motion` lo reduce a cero.

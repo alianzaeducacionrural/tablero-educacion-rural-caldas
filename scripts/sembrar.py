@@ -31,7 +31,7 @@ FOTO = {
     "uc_filas": 740, "uc_valor": 2816620848,
     "consolidado": 6082183577,
     "depto": 5188467255, "comite": 893716322,
-    "beneficiados": 34279, "estudiantes": 2342,
+    "beneficiados": 34279, "estudiantes": 2741,
 }
 
 CONVOCADO = re.compile(r"\s*-\s*convocado\s*-\s*no\s+asisti[oó]\s*$", re.I)
@@ -124,6 +124,13 @@ def leer(path, hoja, renombrar, esperadas=None):
     faltan = [c for c in renombrar if c not in df.columns]
     if faltan:
         raise SystemExit(f"[ERROR] {Path(path).name} / {hoja}: faltan columnas {faltan}. Hay: {list(df.columns)}")
+    return df[list(renombrar)].rename(columns=renombrar)
+
+
+def leer_df(df, path, renombrar):
+    faltan = [c for c in renombrar if c not in df.columns]
+    if faltan:
+        raise SystemExit(f"[ERROR] {Path(path).name}: faltan columnas {faltan}. Hay: {list(df.columns)}")
     return df[list(renombrar)].rename(columns=renombrar)
 
 
@@ -337,6 +344,7 @@ def main():
     ap.add_argument("--uc-drive", type=Path, default=docs / "origen-drive" / "U Campo - Gobernación.xlsx")
     ap.add_argument("--mf-raiz", type=Path, default=docs / "Informe Modelos Flexibles.xlsx")
     ap.add_argument("--uc-raiz", type=Path, default=docs / "Informe U Campo.xlsx")
+    ap.add_argument("--tecnicos", type=Path, default=docs / "Activos Técnicos-Tecnólogos 2020-2024 - Formulado.xlsx", help="Base de técnicos profesionales (se usa solo la hoja 1, 'Activos Técnico 2020-2024').")
     ap.add_argument("--estado-tecnicos", type=Path, default=docs / "estado técnicos" / "Listado_General_Estudiantes.xlsx", help="Listado General con el estado actualizado de los estudiantes (cohortes 2024 en adelante). Opcional.")
     ap.add_argument("--saber11", type=Path, default=docs / "Saber 11" / "Rural- Urbana Rural- Pruebas Saber 11..xlsx", help="Puntajes y clasificación de Saber 11 por institución, 2023-2025. Opcional.")
     ap.add_argument("--vigencia-metas-mf", type=int, default=2025, help="Vigencia de las metas de Modelos Flexibles (confirmada con el equipo: informe financiero 2025).")
@@ -357,9 +365,22 @@ def main():
     mf = leer_base_rica(a.mf_raiz, "Base Datos", "Gobernación")
     uc = leer(a.uc_drive, "Base de datos", {"Año": "anio", "Municipio": "municipio", "Institucion": "institucion", "Estado Convenio": "estado", "Proceso": "proceso", "Actividad": "actividad", "Cantidad": "cantidad", "Valor": "valor", "Aportante": "aportante"})
     ben = leer(a.mf_drive, "Beneficiados", {"Año": "anio", "Municipio": "municipio", "Institucion": "institucion", "Sede": "sede", "Beneficiados": "beneficiados"})
-    est_todo = pd.read_excel(a.uc_drive, sheet_name="Estudiantes")
-    est = leer(a.uc_drive, "Estudiantes", {"Año": "anio_ingreso", "Municipio": "municipio", "Institución Educativa": "institucion", "Universidad": "universidad", "Programa": "programa", "Género": "genero", "Estado": "estado", "Financiador": "financiador", "Año Graduación": "anio_graduacion"})
+    # Técnicos profesionales: hoja 1 ("Activos Técnico 2020-2024") de la base de activos; solo esa hoja.
+    est_todo = pd.read_excel(a.tecnicos, sheet_name=0)
+    est_todo.columns = [limpiar(c) for c in est_todo.columns]
+    est = leer_df(est_todo, a.tecnicos, {"Año": "anio_ingreso", "Municipio": "municipio", "Institución Educativa": "institucion", "Universidad": "universidad", "Programa": "programa", "Género": "genero", "Estado": "estado", "Financiador": "financiador", "Año Graduación": "anio_graduacion"})
+    # El tablero muestra las cohortes desde 2022 (las de 2020-2021 de la base no se publican).
+    est_todo = est_todo[est["anio_ingreso"] >= 2022].reset_index(drop=True)
+    est = est[est["anio_ingreso"] >= 2022].reset_index(drop=True)
     est["nombre"] = est_todo["Nombres y Apellidos"].map(lambda x: limpiar(x) if pd.notna(x) else "")
+    est["documento"] = est_todo["Documento"].map(lambda x: texto(x).replace(".", ""))
+    est["telefono"] = est_todo["Teléfono"].map(texto)
+    est["financiador"] = est["financiador"].map(lambda x: limpiar(x) if pd.notna(x) else "Sin dato")
+    _fin = {}
+    for v in est["financiador"]:  # "COLLECTIVE" y "Collective" son el mismo aportante
+        _fin.setdefault(plegar(v), Counter())[v] += 1
+    est["financiador"] = est["financiador"].map(lambda v: _fin[plegar(v)].most_common(1)[0][0])
+    est["anio_graduacion"] = pd.to_numeric(est["anio_graduacion"], errors="coerce").astype("Int64")
     # Nombre plegado de cada estudiante, alineado con `est` (mismo índice): para cruzar con el Listado General.
     nombre_est = est_todo["Nombres y Apellidos"].map(lambda x: plegar(x) if pd.notna(x) else "")
 
@@ -455,7 +476,7 @@ def main():
         df[col] = df[col].map(lambda v: c_otros[col]("", v))
     for df in (mf, uc, est):
         df["estado"] = df["estado"].map(limpiar)
-    est["genero"] = est["genero"].map(limpiar)
+    est["genero"] = est["genero"].map(texto)
     est["financiador"] = est["financiador"].map(limpiar)
 
     cruce = None

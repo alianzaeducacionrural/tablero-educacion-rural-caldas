@@ -9,7 +9,7 @@ import { Aviso, Cargando, SiluetaCaldas } from './Lamina'
 
 /** Fecha de corte fija por pestaña (no depende de la última carga); las no listadas usan CORTE_PREDETERMINADO. */
 const CORTE_PREDETERMINADO = '31/08/2026'
-const CORTE_FIJO: Record<string, string> = { '/': '31/10/2026', '/cumplimiento': '', '/modelos-flexibles': '31/10/2026', '/cobertura': '31/10/2026', '/saber-11': '31/10/2026' }
+const CORTE_FIJO: Record<string, string> = { '/': '31/10/2026', '/cumplimiento': '', '/modelos-flexibles': '31/10/2026', '/estudiantes': '31/10/2026', '/cobertura': '31/10/2026', '/saber-11': '31/10/2026' }
 
 export function Layout() {
   const { estado, datos, error, actualizando, refrescar } = useDatos()
